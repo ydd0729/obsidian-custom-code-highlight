@@ -1,4 +1,6 @@
-import { App, Notice, Plugin, PluginSettingTab, Setting } from "obsidian";
+import { RangeSetBuilder } from "@codemirror/state";
+import { Decoration, DecorationSet, EditorView, ViewPlugin, ViewUpdate } from "@codemirror/view";
+import { App, MarkdownPostProcessorContext, Notice, Plugin, PluginSettingTab, Setting } from "obsidian";
 
 type PrismPattern = RegExp | {
   pattern: RegExp;
@@ -32,6 +34,23 @@ type LanguageConfig = {
 
 type LanguagesFile = {
   languages?: LanguageConfig[];
+};
+
+type TokenMatcher = {
+  name: string;
+  pattern: RegExp;
+};
+
+type RuntimeLanguage = {
+  ids: string[];
+  idPattern: RegExp;
+  matchers: TokenMatcher[];
+};
+
+type TokenRange = {
+  start: number;
+  end: number;
+  name: string;
 };
 
 type PluginSettings = {
@@ -88,6 +107,7 @@ const VALID_REGEXP_FLAGS = /^[dgimsuvy]*$/;
 export default class CustomCodeHighlightPlugin extends Plugin {
   settings: PluginSettings = DEFAULT_SETTINGS;
   private registeredLanguageIds = new Set<string>();
+  private runtimeLanguages: RuntimeLanguage[] = [];
 
   async onload(): Promise<void> {
     await this.loadSettings();
@@ -103,15 +123,13 @@ export default class CustomCodeHighlightPlugin extends Plugin {
       }
     });
 
-    this.registerMarkdownPostProcessor((element) => {
-      const prism = this.getPrism();
-      if (prism) {
-        this.highlightCodeBlocks(prism, element);
-      }
+    this.registerMarkdownPostProcessor((element, context) => {
+      this.highlightRenderedCodeBlocks(element, context);
     });
 
     await this.ensureExampleConfig();
     await this.registerLanguages();
+    this.registerEditorExtension(this.createEditorExtension());
   }
 
   onunload(): void {
@@ -128,10 +146,6 @@ export default class CustomCodeHighlightPlugin extends Plugin {
 
   async registerLanguages(): Promise<void> {
     const prism = this.getPrism();
-    if (!prism) {
-      new Notice("Prism is not available in this Obsidian window.");
-      return;
-    }
 
     this.unregisterLanguages();
 
@@ -139,26 +153,35 @@ export default class CustomCodeHighlightPlugin extends Plugin {
     for (const language of languages) {
       const grammar = this.createGrammar(language);
       const ids = [language.id, ...(language.aliases ?? [])];
+
+      this.runtimeLanguages.push({
+        ids,
+        idPattern: this.createLanguageIdPattern(ids),
+        matchers: this.createTokenMatchers(language)
+      });
+
       for (const id of ids) {
-        prism.languages[id] = grammar;
+        if (prism) {
+          prism.languages[id] = grammar;
+        }
         this.registeredLanguageIds.add(id);
       }
     }
 
-    this.highlightVisibleCodeBlocks(prism);
+    this.highlightVisibleCodeBlocks();
   }
 
   private unregisterLanguages(): void {
     const prism = this.getPrism();
-    if (!prism) {
-      this.registeredLanguageIds.clear();
-      return;
+
+    if (prism) {
+      for (const id of this.registeredLanguageIds) {
+        delete prism.languages[id];
+      }
     }
 
-    for (const id of this.registeredLanguageIds) {
-      delete prism.languages[id];
-    }
     this.registeredLanguageIds.clear();
+    this.runtimeLanguages = [];
   }
 
   private async loadLanguageConfigs(): Promise<LanguageConfig[]> {
@@ -245,19 +268,264 @@ export default class CustomCodeHighlightPlugin extends Plugin {
     return grammar;
   }
 
-  private highlightVisibleCodeBlocks(prism: PrismLike): void {
-    this.highlightCodeBlocks(prism, document);
+  private createTokenMatchers(language: LanguageConfig): TokenMatcher[] {
+    return language.tokens.map((token) => ({
+      name: token.name,
+      pattern: new RegExp(token.pattern, this.withGlobalFlag(token.flags ?? ""))
+    }));
   }
 
-  private highlightCodeBlocks(prism: PrismLike, root: ParentNode): void {
-    if (!prism.highlightElement) {
+  private withGlobalFlag(flags: string): string {
+    return flags.includes("g") ? flags : `${flags}g`;
+  }
+
+  private createLanguageIdPattern(ids: string[]): RegExp {
+    const alternatives = ids.map((id) => this.escapeRegExp(id)).join("|");
+    return new RegExp(`^\\s*(?:${alternatives})(?:\\s|$)`, "i");
+  }
+
+  private escapeRegExp(value: string): string {
+    return value.replace(/[\\^$.*+?()[\]{}|]/g, "\\$&");
+  }
+
+  private highlightVisibleCodeBlocks(): void {
+    this.highlightCodeBlocks(document);
+  }
+
+  private highlightCodeBlocks(root: ParentNode): void {
+    for (const code of this.findCodeElements(root)) {
+      const language = this.getRuntimeLanguageForCodeElement(code);
+      if (language) {
+        this.highlightCodeElement(code, language);
+      }
+    }
+  }
+
+  private highlightRenderedCodeBlocks(root: ParentNode, context: MarkdownPostProcessorContext): void {
+    for (const code of this.findCodeElements(root)) {
+      const language = this.getRuntimeLanguageForCodeElement(code)
+        ?? this.getRuntimeLanguageFromSection(code, context);
+      if (language) {
+        this.highlightCodeElement(code, language);
+      }
+    }
+  }
+
+  private findCodeElements(root: ParentNode): HTMLElement[] {
+    const elements: HTMLElement[] = [];
+
+    if (root instanceof HTMLElement && root.matches("pre > code, code[class*='language-']")) {
+      elements.push(root);
+    }
+
+    root.querySelectorAll("pre > code, code[class*='language-']").forEach((element) => {
+      if (element instanceof HTMLElement) {
+        elements.push(element);
+      }
+    });
+
+    return elements;
+  }
+
+  private getRuntimeLanguage(id: string): RuntimeLanguage | null {
+    return this.runtimeLanguages.find((language) => language.ids.includes(id)) ?? null;
+  }
+
+  private getRuntimeLanguageForCodeElement(element: HTMLElement): RuntimeLanguage | null {
+    const classNames = [
+      ...Array.from(element.classList),
+      ...Array.from(element.parentElement?.classList ?? [])
+    ];
+
+    for (const className of classNames) {
+      const match = className.match(/^language-(.+)$/);
+      if (!match) {
+        continue;
+      }
+
+      const language = this.getRuntimeLanguage(match[1]);
+      if (language) {
+        return language;
+      }
+    }
+
+    return null;
+  }
+
+  private getRuntimeLanguageFromSection(
+    element: HTMLElement,
+    context: MarkdownPostProcessorContext
+  ): RuntimeLanguage | null {
+    const section = context.getSectionInfo(element);
+    if (!section) {
+      return null;
+    }
+
+    const opening = section.text.match(/^\s*(`{3,}|~{3,})\s*([^\s`~]+)/);
+    if (!opening) {
+      return null;
+    }
+
+    return this.runtimeLanguages.find((language) => language.idPattern.test(opening[2])) ?? null;
+  }
+
+  private highlightCodeElement(element: Element, language: RuntimeLanguage): void {
+    const text = element.textContent ?? "";
+    if (!text) {
       return;
     }
 
-    for (const id of this.registeredLanguageIds) {
-      const selector = `code.language-${CSS.escape(id)}, code[class*="language-${CSS.escape(id)}"]`;
-      root.querySelectorAll(selector).forEach((element) => prism.highlightElement?.(element));
+    element.empty();
+    element.addClass("custom-code-highlight");
+    element.setAttr("data-custom-code-highlighted", "true");
+    this.renderHighlightedText(element, text, language);
+  }
+
+  private renderHighlightedText(element: Element, text: string, language: RuntimeLanguage): void {
+    const ranges = this.findTokenRanges(text, language.matchers);
+    let offset = 0;
+
+    for (const range of ranges) {
+      if (range.start > offset) {
+        element.appendText(text.slice(offset, range.start));
+      }
+
+      const tokenEl = element.createSpan({
+        cls: `token ${range.name}`,
+        text: text.slice(range.start, range.end)
+      });
+      tokenEl.setAttr("data-token", range.name);
+      offset = range.end;
     }
+
+    if (offset < text.length) {
+      element.appendText(text.slice(offset));
+    }
+  }
+
+  private findTokenRanges(text: string, matchers: TokenMatcher[]): TokenRange[] {
+    const ranges: TokenRange[] = [];
+    const occupied = new Array<boolean>(text.length).fill(false);
+
+    for (const matcher of matchers) {
+      matcher.pattern.lastIndex = 0;
+
+      for (const match of text.matchAll(matcher.pattern)) {
+        const start = match.index ?? 0;
+        const value = match[0];
+        const end = start + value.length;
+
+        if (!value || this.hasOverlap(occupied, start, end)) {
+          continue;
+        }
+
+        ranges.push({ start, end, name: matcher.name });
+        for (let i = start; i < end; i += 1) {
+          occupied[i] = true;
+        }
+      }
+    }
+
+    return ranges.sort((left, right) => left.start - right.start || right.end - left.end);
+  }
+
+  private hasOverlap(occupied: boolean[], start: number, end: number): boolean {
+    for (let i = start; i < end; i += 1) {
+      if (occupied[i]) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  private createEditorExtension() {
+    const plugin = this;
+
+    return ViewPlugin.fromClass(class {
+      decorations: DecorationSet;
+
+      constructor(view: EditorView) {
+        this.decorations = plugin.buildEditorDecorations(view);
+      }
+
+      update(update: ViewUpdate): void {
+        if (update.docChanged || update.viewportChanged) {
+          this.decorations = plugin.buildEditorDecorations(update.view);
+        }
+      }
+    }, {
+      decorations: (value) => value.decorations
+    });
+  }
+
+  private buildEditorDecorations(view: EditorView): DecorationSet {
+    const builder = new RangeSetBuilder<Decoration>();
+
+    if (this.runtimeLanguages.length === 0) {
+      return builder.finish();
+    }
+
+    const doc = view.state.doc;
+    let lineNumber = 1;
+
+    while (lineNumber <= doc.lines) {
+      const openingLine = doc.line(lineNumber);
+      const opening = openingLine.text.match(/^(\s*)(`{3,}|~{3,})\s*([^\s`~]+)/);
+
+      if (!opening) {
+        lineNumber += 1;
+        continue;
+      }
+
+      const fence = opening[2];
+      const language = this.runtimeLanguages.find((candidate) => candidate.idPattern.test(opening[3]));
+
+      if (!language) {
+        lineNumber += 1;
+        continue;
+      }
+
+      let closingLineNumber = lineNumber + 1;
+      while (closingLineNumber <= doc.lines) {
+        const candidateLine = doc.line(closingLineNumber);
+        if (this.isClosingFence(candidateLine.text, fence)) {
+          break;
+        }
+        closingLineNumber += 1;
+      }
+
+      const contentStartLineNumber = lineNumber + 1;
+      const hasClosingFence = closingLineNumber <= doc.lines;
+      const contentEndLineNumber = hasClosingFence ? closingLineNumber - 1 : doc.lines;
+
+      if (contentStartLineNumber <= contentEndLineNumber) {
+        const contentStart = doc.line(contentStartLineNumber).from;
+        const contentEnd = doc.line(contentEndLineNumber).to;
+        const source = doc.sliceString(contentStart, contentEnd);
+        const ranges = this.findTokenRanges(source, language.matchers);
+
+        for (const range of ranges) {
+          builder.add(
+            contentStart + range.start,
+            contentStart + range.end,
+            Decoration.mark({
+              class: `custom-code-highlight-editor-token custom-code-highlight-editor-${range.name}`
+            })
+          );
+        }
+      }
+
+      lineNumber = hasClosingFence ? closingLineNumber + 1 : doc.lines + 1;
+    }
+
+    return builder.finish();
+  }
+
+  private isClosingFence(text: string, openingFence: string): boolean {
+    const fenceChar = openingFence[0];
+    const minLength = openingFence.length;
+    const pattern = new RegExp(`^\\s*\\${fenceChar}{${minLength},}\\s*$`);
+    return pattern.test(text);
   }
 
   private async ensureExampleConfig(): Promise<void> {

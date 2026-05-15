@@ -8,6 +8,12 @@ importers:
 
   .:
     devDependencies:
+      '@codemirror/state':
+        specifier: ^6.5.0
+        version: 6.5.0
+      '@codemirror/view':
+        specifier: ^6.38.6
+        version: 6.38.6
       '@types/node':
         specifier: ^20.11.30
         version: 20.19.41

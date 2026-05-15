@@ -1,0 +1,57 @@
+code.custom-code-highlight .token.comment {
+  color: var(--text-muted);
+  font-style: italic;
+}
+
+code.custom-code-highlight .token.string {
+  color: var(--color-green);
+}
+
+code.custom-code-highlight .token.keyword {
+  color: var(--color-purple);
+}
+
+code.custom-code-highlight .token.builtin {
+  color: var(--color-cyan, var(--color-blue));
+}
+
+code.custom-code-highlight .token.number {
+  color: var(--color-orange);
+}
+
+code.custom-code-highlight .token.variable {
+  color: var(--color-yellow);
+}
+
+code.custom-code-highlight .token.operator {
+  color: var(--text-accent);
+}
+
+.cm-editor .custom-code-highlight-editor-comment {
+  color: var(--text-muted);
+  font-style: italic;
+}
+
+.cm-editor .custom-code-highlight-editor-string {
+  color: var(--color-green);
+}
+
+.cm-editor .custom-code-highlight-editor-keyword {
+  color: var(--color-purple);
+}
+
+.cm-editor .custom-code-highlight-editor-builtin {
+  color: var(--color-cyan, var(--color-blue));
+}
+
+.cm-editor .custom-code-highlight-editor-number {
+  color: var(--color-orange);
+}
+
+.cm-editor .custom-code-highlight-editor-variable {
+  color: var(--color-yellow);
+}
+
+.cm-editor .custom-code-highlight-editor-operator {
+  color: var(--text-accent);
+}
