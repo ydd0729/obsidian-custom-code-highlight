@@ -1,6 +1,6 @@
 {
   "name": "obsidian-custom-code-highlight",
-  "version": "0.1.0",
+  "version": "1.0.0",
   "description": "Configurable syntax highlighting for Obsidian code blocks.",
   "main": "main.js",
   "scripts": {
