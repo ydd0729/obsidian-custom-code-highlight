@@ -1,20 +1,42 @@
 # Custom Code Highlight
 
-Custom Code Highlight is an Obsidian plugin for adding syntax highlighting to fenced code blocks whose languages are not supported by Obsidian out of the box.
+Custom Code Highlight is an extensible Obsidian plugin for adding syntax highlighting to fenced code blocks whose languages are not supported consistently by Obsidian out of the box.
 
-The plugin was built primarily to support WebAssembly text format snippets (`wasm`, `wat`, and `wast`), but its language list can be extended with a JSON configuration file.
+The plugin was built primarily to support WebAssembly text format snippets (`wasm`, `wat`, and `wast`), but it now ships with several additional language definitions and can be extended with a JSON configuration file.
 
 ## Features
 
-- Highlights WebAssembly text format code blocks by default.
-- Supports the aliases `wasm`, `wat`, `wast`, and `webassembly`.
+- Highlights multiple built-in languages by default.
 - Works in Reading view and Live Preview.
 - Adds editor-mode highlighting through a CodeMirror 6 decoration extension.
 - Allows additional languages to be defined in `languages.json`.
 - Reuses Obsidian theme colors where possible.
 - Does not replace editable code block DOM in Live Preview, so code blocks remain editable.
 
-## Supported WebAssembly fences
+## Why This Plugin Exists
+
+Obsidian's own documentation says that Reading view uses Prism for syntax highlighting, while Source mode and Live Preview do not support PrismJS and may render syntax highlighting differently. In practice, this means a language can work in one mode, fail in another mode, or be missing entirely depending on the language and view.
+
+This plugin provides a small built-in set of extra language definitions and a JSON-based extension point for adding more.
+
+This is not an exhaustive list of every language Obsidian does not support. Obsidian, Prism, and CodeMirror can all change over time. The goal of this plugin is to cover common gaps and make the remaining gaps configurable.
+
+## Built-In Supported Languages
+
+The plugin currently ships with these built-in language definitions:
+
+| Language | Fence names |
+| --- | --- |
+| WebAssembly text format | `wasm`, `wat`, `wast`, `webassembly` |
+| Zig | `zig` |
+| Nix | `nix`, `nixos` |
+| HCL / Terraform | `hcl`, `terraform`, `tf`, `tfvars` |
+| Kusto Query Language | `kusto`, `kql` |
+| AutoHotkey | `autohotkey`, `ahk` |
+
+Examples of languages that are often missing or inconsistent in Obsidian's default highlighting setup include WebAssembly text format, Kusto/KQL, AutoHotkey, Nix, HCL/Terraform, Zig, GDScript, Isabelle, and some hardware or shader languages. Use `languages.json` to add languages that are not built in.
+
+## WebAssembly Examples
 
 Use any of the following language names:
 
@@ -37,6 +59,54 @@ Use any of the following language names:
 ````
 
 The same highlighting rules also apply to `wast` and `webassembly`.
+
+## Other Built-In Examples
+
+````markdown
+```zig
+const std = @import("std");
+
+pub fn main() !void {
+    std.debug.print("hello {s}\n", .{"zig"});
+}
+```
+````
+
+````markdown
+```nix
+{ pkgs, ... }:
+{
+  environment.systemPackages = with pkgs; [
+    git
+    ripgrep
+  ];
+}
+```
+````
+
+````markdown
+```terraform
+resource "aws_s3_bucket" "example" {
+  bucket = var.bucket_name
+}
+```
+````
+
+````markdown
+```kql
+requests
+| where timestamp > ago(1h)
+| summarize count() by bin(timestamp, 5m)
+```
+````
+
+````markdown
+```ahk
+^j::
+MsgBox "Hello from AutoHotkey"
+return
+```
+````
 
 ## Installation
 
@@ -66,6 +136,8 @@ If the plugin was already enabled while files were changed, disable and enable i
 ## Extending Languages
 
 Create a `languages.json` file in the plugin directory. You can copy `languages.example.json` as a starting point.
+
+Custom languages are additive. They are loaded in addition to the built-in language definitions while built-in language highlighting is enabled in the plugin settings.
 
 Example:
 

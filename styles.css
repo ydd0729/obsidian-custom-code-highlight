@@ -23,6 +23,14 @@ code.custom-code-highlight .token.variable {
   color: var(--color-yellow);
 }
 
+code.custom-code-highlight .token.function {
+  color: var(--color-blue);
+}
+
+code.custom-code-highlight .token.property {
+  color: var(--color-pink);
+}
+
 code.custom-code-highlight .token.operator {
   color: var(--text-accent);
 }
@@ -50,6 +58,14 @@ code.custom-code-highlight .token.operator {
 
 .cm-editor .custom-code-highlight-editor-variable {
   color: var(--color-yellow);
+}
+
+.cm-editor .custom-code-highlight-editor-function {
+  color: var(--color-blue);
+}
+
+.cm-editor .custom-code-highlight-editor-property {
+  color: var(--color-pink);
 }
 
 .cm-editor .custom-code-highlight-editor-operator {

@@ -100,6 +100,203 @@ const WASM_LANGUAGE: LanguageConfig = {
   ]
 };
 
+const ZIG_LANGUAGE: LanguageConfig = {
+  id: "zig",
+  tokens: [
+    {
+      name: "comment",
+      pattern: "//.*",
+      flags: "m"
+    },
+    {
+      name: "string",
+      pattern: "\"(?:\\\\.|[^\"\\\\])*\"|'(?:\\\\.|[^'\\\\])*'",
+      greedy: true
+    },
+    {
+      name: "keyword",
+      pattern: "\\b(?:addrspace|align|allowzero|and|anyframe|anytype|asm|async|await|break|callconv|catch|comptime|const|continue|defer|else|enum|errdefer|error|export|extern|fn|for|if|inline|linksection|noalias|noinline|nosuspend|null|opaque|or|orelse|packed|pub|resume|return|struct|suspend|switch|test|threadlocal|try|union|unreachable|usingnamespace|var|volatile|while)\\b"
+    },
+    {
+      name: "builtin",
+      pattern: "@[A-Za-z_][A-Za-z0-9_]*|\\b(?:bool|void|noreturn|type|anyerror|comptime_int|comptime_float|isize|usize|i\\d+|u\\d+|f16|f32|f64|f80|f128)\\b"
+    },
+    {
+      name: "number",
+      pattern: "\\b(?:0x[\\da-fA-F_]+|0b[01_]+|\\d[\\d_]*(?:\\.\\d[\\d_]*)?(?:[eE][-+]?\\d[\\d_]*)?)\\b"
+    },
+    {
+      name: "function",
+      pattern: "\\b[A-Za-z_][A-Za-z0-9_]*(?=\\s*\\()"
+    },
+    {
+      name: "operator",
+      pattern: "[-+*/%=!<>|&~^?:]+|\\.\\.?|[{}()[\\],;]"
+    }
+  ]
+};
+
+const NIX_LANGUAGE: LanguageConfig = {
+  id: "nix",
+  aliases: ["nixos"],
+  tokens: [
+    {
+      name: "comment",
+      pattern: "#.*|/\\*[\\s\\S]*?\\*/",
+      greedy: true
+    },
+    {
+      name: "string",
+      pattern: "''[\\s\\S]*?''|\"(?:\\\\.|[^\"\\\\])*\"",
+      greedy: true
+    },
+    {
+      name: "keyword",
+      pattern: "\\b(?:assert|else|if|in|inherit|let|or|rec|then|with)\\b"
+    },
+    {
+      name: "builtin",
+      pattern: "\\b(?:abort|baseNameOf|builtins|derivation|dirOf|fetchTarball|import|isNull|map|placeholder|removeAttrs|throw|toString)\\b"
+    },
+    {
+      name: "number",
+      pattern: "\\b\\d+(?:\\.\\d+)?\\b"
+    },
+    {
+      name: "property",
+      pattern: "\\b[A-Za-z_][A-Za-z0-9_'-]*(?=\\s*=)"
+    },
+    {
+      name: "operator",
+      pattern: "[-+*/!<>=&|?:@]+|\\.\\.\\.?|[{}()[\\],;]"
+    }
+  ]
+};
+
+const HCL_LANGUAGE: LanguageConfig = {
+  id: "hcl",
+  aliases: ["terraform", "tf", "tfvars"],
+  tokens: [
+    {
+      name: "comment",
+      pattern: "#.*|//.*|/\\*[\\s\\S]*?\\*/",
+      greedy: true
+    },
+    {
+      name: "string",
+      pattern: "<<-?\\w+[\\s\\S]*?\\n\\w+|\"(?:\\\\.|[^\"\\\\])*\"",
+      greedy: true
+    },
+    {
+      name: "keyword",
+      pattern: "\\b(?:resource|data|provider|variable|output|module|locals|terraform|dynamic|for|in|if|null|true|false)\\b"
+    },
+    {
+      name: "builtin",
+      pattern: "\\b(?:count|each|for_each|depends_on|lifecycle|provisioner|connection|source|version|required_providers|required_version|backend)\\b"
+    },
+    {
+      name: "number",
+      pattern: "\\b\\d+(?:\\.\\d+)?\\b"
+    },
+    {
+      name: "property",
+      pattern: "\\b[A-Za-z_][A-Za-z0-9_-]*(?=\\s*=)"
+    },
+    {
+      name: "variable",
+      pattern: "\\b(?:var|local|module|data|path|terraform|each|self)\\.[A-Za-z0-9_.-]+"
+    },
+    {
+      name: "operator",
+      pattern: "=>|==|!=|<=|>=|&&|\\|\\||[-+*/%<>=!?:]+|[{}()[\\],.]"
+    }
+  ]
+};
+
+const KUSTO_LANGUAGE: LanguageConfig = {
+  id: "kusto",
+  aliases: ["kql"],
+  tokens: [
+    {
+      name: "comment",
+      pattern: "//.*",
+      flags: "m"
+    },
+    {
+      name: "string",
+      pattern: "@?\"(?:\"\"|\\\\.|[^\"\\\\])*\"|'(?:''|\\\\.|[^'\\\\])*'",
+      greedy: true
+    },
+    {
+      name: "keyword",
+      pattern: "\\b(?:let|where|project|project-away|extend|summarize|by|join|kind|on|union|take|limit|top|order|sort|asc|desc|render|evaluate|parse|mv-expand|distinct|count|datatable|between|contains|has|in|and|or|not)\\b",
+      flags: "i"
+    },
+    {
+      name: "builtin",
+      pattern: "\\b(?:ago|bin|case|datetime|dynamic|iff|isnotempty|isnull|isempty|now|strcat|split|tolower|toupper|tostring|toint|tolong|todouble|summarize|countif|dcount|make_set|make_list)\\b",
+      flags: "i"
+    },
+    {
+      name: "number",
+      pattern: "\\b\\d+(?:\\.\\d+)?\\b"
+    },
+    {
+      name: "operator",
+      pattern: "\\|\\||[|=<>!~+-/*%,.;()[\\]{}]"
+    }
+  ]
+};
+
+const AUTOHOTKEY_LANGUAGE: LanguageConfig = {
+  id: "autohotkey",
+  aliases: ["ahk"],
+  tokens: [
+    {
+      name: "comment",
+      pattern: ";.*|/\\*[\\s\\S]*?\\*/",
+      greedy: true
+    },
+    {
+      name: "string",
+      pattern: "\"(?:\"\"|`.|[^\"])*\"|'(?:''|`.|[^'])*'",
+      greedy: true
+    },
+    {
+      name: "keyword",
+      pattern: "\\b(?:if|else|return|global|local|static|class|extends|try|catch|finally|throw|loop|while|for|in|break|continue|switch|case|default|goto|gosub|new|and|or|not)\\b",
+      flags: "i"
+    },
+    {
+      name: "builtin",
+      pattern: "\\b(?:MsgBox|Send|SendInput|Click|Sleep|Run|WinWait|WinActivate|Hotkey|SetTimer|InputBox|FileRead|FileAppend|RegRead|RegWrite|StrSplit|SubStr|InStr|Format)\\b",
+      flags: "i"
+    },
+    {
+      name: "number",
+      pattern: "\\b(?:0x[\\da-fA-F]+|\\d+(?:\\.\\d+)?)\\b"
+    },
+    {
+      name: "variable",
+      pattern: "%[A-Za-z_][A-Za-z0-9_]*%|\\b[A-Za-z_][A-Za-z0-9_]*(?=\\s*:=)"
+    },
+    {
+      name: "operator",
+      pattern: "::|:=|=>|==|!=|<=|>=|&&|\\|\\||[-+*/%=!<>.&|^~?:]+|[{}()[\\],.]"
+    }
+  ]
+};
+
+const BUILT_IN_LANGUAGES: LanguageConfig[] = [
+  WASM_LANGUAGE,
+  ZIG_LANGUAGE,
+  NIX_LANGUAGE,
+  HCL_LANGUAGE,
+  KUSTO_LANGUAGE,
+  AUTOHOTKEY_LANGUAGE
+];
+
 const LANGUAGE_ID_PATTERN = /^[A-Za-z0-9_-]+$/;
 const TOKEN_NAME_PATTERN = /^[A-Za-z0-9_-]+$/;
 const VALID_REGEXP_FLAGS = /^[dgimsuvy]*$/;
@@ -188,7 +385,7 @@ export default class CustomCodeHighlightPlugin extends Plugin {
     const languages: LanguageConfig[] = [];
 
     if (this.settings.includeBuiltInWasm) {
-      languages.push(WASM_LANGUAGE);
+      languages.push(...BUILT_IN_LANGUAGES);
     }
 
     const config = await this.readConfiguredLanguages();
@@ -589,8 +786,8 @@ class CustomCodeHighlightSettingTab extends PluginSettingTab {
         }));
 
     new Setting(containerEl)
-      .setName("Built-in WebAssembly highlighting")
-      .setDesc("Registers wasm, wat, wast, and webassembly code fences.")
+      .setName("Built-in language highlighting")
+      .setDesc("Registers built-in language definitions for wasm/wat, Zig, Nix, HCL/Terraform, Kusto/KQL, and AutoHotkey.")
       .addToggle((toggle) => toggle
         .setValue(this.plugin.settings.includeBuiltInWasm)
         .onChange(async (value) => {
