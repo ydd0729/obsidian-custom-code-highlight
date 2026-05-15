@@ -1,0 +1,10 @@
+{
+  "id": "custom-code-highlight",
+  "name": "Custom Code Highlight",
+  "version": "0.1.0",
+  "minAppVersion": "1.5.0",
+  "description": "Adds configurable syntax highlighting for Obsidian code blocks, including WebAssembly text snippets.",
+  "author": "",
+  "authorUrl": "",
+  "isDesktopOnly": false
+}

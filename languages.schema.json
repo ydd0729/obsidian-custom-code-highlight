@@ -1,0 +1,62 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Custom Code Highlight languages",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "languages": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "tokens"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9_-]+$"
+          },
+          "aliases": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9_-]+$"
+            }
+          },
+          "tokens": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "name",
+                "pattern"
+              ],
+              "properties": {
+                "name": {
+                  "type": "string",
+                  "pattern": "^[A-Za-z0-9_-]+$"
+                },
+                "pattern": {
+                  "type": "string"
+                },
+                "flags": {
+                  "type": "string",
+                  "pattern": "^[dgimsuvy]*$"
+                },
+                "lookbehind": {
+                  "type": "boolean"
+                },
+                "greedy": {
+                  "type": "boolean"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

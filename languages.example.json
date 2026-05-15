@@ -1,0 +1,30 @@
+{
+  "$schema": "./languages.schema.json",
+  "languages": [
+    {
+      "id": "mydsl",
+      "aliases": [
+        "my-dsl"
+      ],
+      "tokens": [
+        {
+          "name": "comment",
+          "pattern": ";.*",
+          "flags": "m"
+        },
+        {
+          "name": "keyword",
+          "pattern": "\\b(foo|bar|baz)\\b"
+        },
+        {
+          "name": "number",
+          "pattern": "\\b\\d+(?:\\.\\d+)?\\b"
+        },
+        {
+          "name": "string",
+          "pattern": "\"(?:\\\\.|[^\"\\\\])*\""
+        }
+      ]
+    }
+  ]
+}

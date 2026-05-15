@@ -1,0 +1,12 @@
+node_modules/
+.pnpm-store/
+
+languages.json
+data.json
+
+*.log
+*.tmp
+_tmp_*
+
+.DS_Store
+Thumbs.db

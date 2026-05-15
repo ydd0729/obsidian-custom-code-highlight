@@ -1,0 +1,30 @@
+{
+  "name": "obsidian-custom-code-highlight",
+  "version": "0.1.0",
+  "description": "Configurable syntax highlighting for Obsidian code blocks.",
+  "main": "main.js",
+  "scripts": {
+    "dev": "node esbuild.config.mjs --watch",
+    "build": "tsc --noEmit --skipLibCheck && node esbuild.config.mjs"
+  },
+  "keywords": [
+    "obsidian",
+    "plugin",
+    "syntax-highlighting",
+    "wasm",
+    "wat"
+  ],
+  "license": "MIT",
+  "devDependencies": {
+    "@types/node": "^20.11.30",
+    "builtin-modules": "^3.3.0",
+    "esbuild": "^0.20.2",
+    "obsidian": "^1.5.12",
+    "typescript": "^5.4.2"
+  },
+  "pnpm": {
+    "onlyBuiltDependencies": [
+      "esbuild"
+    ]
+  }
+}
