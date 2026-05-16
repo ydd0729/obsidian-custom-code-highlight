@@ -1,7 +1,7 @@
 {
   "id": "custom-code-highlight",
   "name": "Custom Code Highlight",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "minAppVersion": "1.5.0",
   "description": "Extensible syntax highlighting for custom and missing code block languages.",
   "author": "Dong Yang",
