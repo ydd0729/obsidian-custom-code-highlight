@@ -289,13 +289,126 @@ const AUTOHOTKEY_LANGUAGE: LanguageConfig = {
   ]
 };
 
+const GDSCRIPT_LANGUAGE: LanguageConfig = {
+  id: "gdscript",
+  aliases: ["gd"],
+  tokens: [
+    {
+      name: "comment",
+      pattern: "#.*",
+      flags: "m"
+    },
+    {
+      name: "string",
+      pattern: "\"\"\"[\\s\\S]*?\"\"\"|'''[\\s\\S]*?'''|\"(?:\\\\.|[^\"\\\\])*\"|'(?:\\\\.|[^'\\\\])*'",
+      greedy: true
+    },
+    {
+      name: "keyword",
+      pattern: "\\b(?:and|as|assert|await|break|breakpoint|class|class_name|const|continue|elif|else|enum|extends|for|func|if|in|is|match|not|or|pass|preload|return|self|signal|static|super|tool|var|while|yield)\\b"
+    },
+    {
+      name: "builtin",
+      pattern: "\\b(?:Array|Basis|Callable|Color|Dictionary|Node|Node2D|Object|PackedScene|Quaternion|Rect2|Resource|SceneTree|Signal|String|StringName|Transform2D|Transform3D|Vector2|Vector3|Vector4|bool|float|int|void)\\b|@[A-Za-z_][A-Za-z0-9_]*"
+    },
+    {
+      name: "number",
+      pattern: "\\b(?:0x[\\da-fA-F_]+|0b[01_]+|\\d[\\d_]*(?:\\.\\d[\\d_]*)?)\\b"
+    },
+    {
+      name: "function",
+      pattern: "\\b[A-Za-z_][A-Za-z0-9_]*(?=\\s*\\()"
+    },
+    {
+      name: "operator",
+      pattern: ":=|==|!=|<=|>=|&&|\\|\\||[-+*/%=!<>.&|^~?:]+|[{}()[\\],.]"
+    }
+  ]
+};
+
+const MLIR_LANGUAGE: LanguageConfig = {
+  id: "mlir",
+  tokens: [
+    {
+      name: "comment",
+      pattern: "//.*",
+      flags: "m"
+    },
+    {
+      name: "string",
+      pattern: "\"(?:\\\\.|[^\"\\\\])*\"",
+      greedy: true
+    },
+    {
+      name: "keyword",
+      pattern: "\\b(?:affine_map|affine_set|attributes|dense|false|func|loc|module|none|return|strided|true|type|unit)\\b"
+    },
+    {
+      name: "builtin",
+      pattern: "\\b(?:bf16|f16|f32|f64|i1|i8|i16|i32|i64|index|memref|tensor|vector)\\b(?:<[^>]+>)?"
+    },
+    {
+      name: "number",
+      pattern: "[-+]?\\b(?:0x[\\da-fA-F]+|\\d+(?:\\.\\d+)?)\\b"
+    },
+    {
+      name: "variable",
+      pattern: "%[A-Za-z0-9_.$-]+|#[A-Za-z0-9_.$-]+|@[A-Za-z0-9_.$-]+|![A-Za-z0-9_.$-]+"
+    },
+    {
+      name: "operator",
+      pattern: "->|=>|[{}()[\\],:=<>*x?]|\\.\\.\\."
+    }
+  ]
+};
+
+const LEAN_LANGUAGE: LanguageConfig = {
+  id: "lean",
+  aliases: ["lean4"],
+  tokens: [
+    {
+      name: "comment",
+      pattern: "--.*|/-[\\s\\S]*?-/",
+      greedy: true
+    },
+    {
+      name: "string",
+      pattern: "\"(?:\\\\.|[^\"\\\\])*\"",
+      greedy: true
+    },
+    {
+      name: "keyword",
+      pattern: "\\b(?:abbrev|axiom|by|calc|case|class|def|deriving|do|else|end|example|extends|forall|fun|if|import|in|inductive|infix|instance|let|macro|match|mutual|namespace|open|opaque|partial|private|protected|public|rec|section|simp|structure|syntax|termination_by|then|theorem|universe|variable|where|with)\\b"
+    },
+    {
+      name: "builtin",
+      pattern: "\\b(?:Bool|Char|False|Fin|Float|IO|Int|List|Nat|Option|Prop|Set|Sort|String|Subtype|True|Type|UInt8|UInt16|UInt32|UInt64|Unit)\\b"
+    },
+    {
+      name: "number",
+      pattern: "\\b\\d+(?:\\.\\d+)?\\b"
+    },
+    {
+      name: "function",
+      pattern: "\\b[A-Za-z_][A-Za-z0-9_'.]*(?=\\s*(?:\\{|\\(|:|:=))"
+    },
+    {
+      name: "operator",
+      pattern: "=>|:=|->|<-|←|→|↔|∀|∃|λ|fun|[{}()[\\],.:;=<>+\\-*/|&!?'^]+"
+    }
+  ]
+};
+
 const BUILT_IN_LANGUAGES: LanguageConfig[] = [
   WASM_LANGUAGE,
   ZIG_LANGUAGE,
   NIX_LANGUAGE,
   HCL_LANGUAGE,
   KUSTO_LANGUAGE,
-  AUTOHOTKEY_LANGUAGE
+  AUTOHOTKEY_LANGUAGE,
+  GDSCRIPT_LANGUAGE,
+  MLIR_LANGUAGE,
+  LEAN_LANGUAGE
 ];
 
 const LANGUAGE_ID_PATTERN = /^[A-Za-z0-9_-]+$/;
@@ -860,7 +973,7 @@ class CustomCodeHighlightSettingTab extends PluginSettingTab {
 
     new Setting(containerEl)
       .setName("Built-in language highlighting")
-      .setDesc("Registers built-in language definitions for wasm/wat, Zig, Nix, HCL/Terraform, Kusto/KQL, and AutoHotkey.")
+      .setDesc("Registers built-in language definitions for wasm/wat, Zig, Nix, HCL/Terraform, Kusto/KQL, AutoHotkey, GDScript, MLIR, and Lean.")
       .addToggle((toggle) => toggle
         .setValue(this.plugin.settings.includeBuiltInLanguages)
         .onChange(async (value) => {

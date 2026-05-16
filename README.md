@@ -6,7 +6,7 @@ The plugin highlights code in both Reading view and editor/Live Preview mode. It
 
 ## Features
 
-- Built-in highlighting for WebAssembly text, Zig, Nix, HCL/Terraform, Kusto/KQL, and AutoHotkey.
+- Built-in highlighting for WebAssembly text, Zig, Nix, HCL/Terraform, Kusto/KQL, AutoHotkey, GDScript, MLIR, and Lean.
 - Editor-mode highlighting through CodeMirror 6 decorations.
 - Reading-view highlighting through Markdown postprocessing.
 - Extensible language definitions via JSON.
@@ -22,6 +22,9 @@ The plugin highlights code in both Reading view and editor/Live Preview mode. It
 | HCL / Terraform | `hcl`, `terraform`, `tf`, `tfvars` |
 | Kusto Query Language | `kusto`, `kql` |
 | AutoHotkey | `autohotkey`, `ahk` |
+| GDScript | `gdscript`, `gd` |
+| MLIR | `mlir` |
+| Lean | `lean`, `lean4` |
 
 Obsidian uses different highlighting paths across Reading view, Source mode, and Live Preview. This plugin fills common gaps and lets you add more languages when needed.
 
