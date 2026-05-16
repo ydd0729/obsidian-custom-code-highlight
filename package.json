@@ -1,7 +1,7 @@
 {
   "name": "obsidian-custom-code-highlight",
   "version": "1.0.0",
-  "description": "Configurable syntax highlighting for Obsidian code blocks.",
+  "description": "Configurable syntax highlighting for code blocks.",
   "main": "main.js",
   "scripts": {
     "dev": "node esbuild.config.mjs --watch",

@@ -1,6 +1,6 @@
 # Custom Code Highlight
 
-Extensible syntax highlighting for Obsidian code blocks that are missing or inconsistent in Obsidian's default highlighting.
+Extensible syntax highlighting for code blocks that are missing or inconsistent in the default highlighting.
 
 The plugin highlights code in both Reading view and editor/Live Preview mode. It ships with several built-in language definitions and can be extended with `languages.json`.
 
