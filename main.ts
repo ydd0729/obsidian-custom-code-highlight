@@ -1,4 +1,4 @@
-import { RangeSetBuilder } from "@codemirror/state";
+import { RangeSetBuilder, Text } from "@codemirror/state";
 import { Decoration, DecorationSet, EditorView, ViewPlugin, ViewUpdate } from "@codemirror/view";
 import { App, MarkdownPostProcessorContext, Notice, Plugin, PluginSettingTab, Setting } from "obsidian";
 
@@ -43,6 +43,7 @@ type TokenMatcher = {
 
 type RuntimeLanguage = {
   ids: string[];
+  normalizedIds: Set<string>;
   idPattern: RegExp;
   matchers: TokenMatcher[];
 };
@@ -55,12 +56,12 @@ type TokenRange = {
 
 type PluginSettings = {
   languageConfigPath: string;
-  includeBuiltInWasm: boolean;
+  includeBuiltInLanguages: boolean;
 };
 
 const DEFAULT_SETTINGS: PluginSettings = {
   languageConfigPath: "languages.json",
-  includeBuiltInWasm: true
+  includeBuiltInLanguages: true
 };
 
 const WASM_LANGUAGE: LanguageConfig = {
@@ -334,11 +335,21 @@ export default class CustomCodeHighlightPlugin extends Plugin {
   }
 
   async loadSettings(): Promise<void> {
-    this.settings = Object.assign({}, DEFAULT_SETTINGS, await this.loadData());
+    const loaded = await this.loadData();
+    this.settings = Object.assign({}, DEFAULT_SETTINGS, loaded);
+
+    const legacySettings = loaded as Partial<PluginSettings> & { includeBuiltInWasm?: boolean } | null;
+    if (legacySettings && typeof legacySettings.includeBuiltInWasm === "boolean") {
+      this.settings.includeBuiltInLanguages = legacySettings.includeBuiltInWasm;
+      await this.saveSettings();
+    }
   }
 
   async saveSettings(): Promise<void> {
-    await this.saveData(this.settings);
+    await this.saveData({
+      languageConfigPath: this.settings.languageConfigPath,
+      includeBuiltInLanguages: this.settings.includeBuiltInLanguages
+    });
   }
 
   async registerLanguages(): Promise<void> {
@@ -353,6 +364,7 @@ export default class CustomCodeHighlightPlugin extends Plugin {
 
       this.runtimeLanguages.push({
         ids,
+        normalizedIds: new Set(ids.map((id) => id.toLowerCase())),
         idPattern: this.createLanguageIdPattern(ids),
         matchers: this.createTokenMatchers(language)
       });
@@ -384,7 +396,7 @@ export default class CustomCodeHighlightPlugin extends Plugin {
   private async loadLanguageConfigs(): Promise<LanguageConfig[]> {
     const languages: LanguageConfig[] = [];
 
-    if (this.settings.includeBuiltInWasm) {
+    if (this.settings.includeBuiltInLanguages) {
       languages.push(...BUILT_IN_LANGUAGES);
     }
 
@@ -525,7 +537,8 @@ export default class CustomCodeHighlightPlugin extends Plugin {
   }
 
   private getRuntimeLanguage(id: string): RuntimeLanguage | null {
-    return this.runtimeLanguages.find((language) => language.ids.includes(id)) ?? null;
+    const normalizedId = id.toLowerCase();
+    return this.runtimeLanguages.find((language) => language.normalizedIds.has(normalizedId)) ?? null;
   }
 
   private getRuntimeLanguageForCodeElement(element: HTMLElement): RuntimeLanguage | null {
@@ -567,6 +580,10 @@ export default class CustomCodeHighlightPlugin extends Plugin {
   }
 
   private highlightCodeElement(element: Element, language: RuntimeLanguage): void {
+    if (element.hasClass("custom-code-highlight")) {
+      return;
+    }
+
     const text = element.textContent ?? "";
     if (!text) {
       return;
@@ -662,10 +679,39 @@ export default class CustomCodeHighlightPlugin extends Plugin {
       return builder.finish();
     }
 
-    const doc = view.state.doc;
-    let lineNumber = 1;
+    for (const { from, to } of this.mergeRanges(view.visibleRanges)) {
+      this.buildEditorDecorationsForRange(view, builder, from, to);
+    }
 
-    while (lineNumber <= doc.lines) {
+    return builder.finish();
+  }
+
+  private mergeRanges(ranges: readonly { from: number; to: number }[]): { from: number; to: number }[] {
+    const merged: { from: number; to: number }[] = [];
+
+    for (const range of ranges) {
+      const previous = merged[merged.length - 1];
+      if (previous && range.from <= previous.to) {
+        previous.to = Math.max(previous.to, range.to);
+      } else {
+        merged.push({ from: range.from, to: range.to });
+      }
+    }
+
+    return merged;
+  }
+
+  private buildEditorDecorationsForRange(
+    view: EditorView,
+    builder: RangeSetBuilder<Decoration>,
+    from: number,
+    to: number
+  ): void {
+    const doc = view.state.doc;
+    let lineNumber = this.findFenceSearchStartLine(doc, from);
+    const endLineNumber = doc.lineAt(to).number;
+
+    while (lineNumber <= endLineNumber) {
       const openingLine = doc.line(lineNumber);
       const opening = openingLine.text.match(/^(\s*)(`{3,}|~{3,})\s*([^\s`~]+)/);
 
@@ -698,13 +744,27 @@ export default class CustomCodeHighlightPlugin extends Plugin {
       if (contentStartLineNumber <= contentEndLineNumber) {
         const contentStart = doc.line(contentStartLineNumber).from;
         const contentEnd = doc.line(contentEndLineNumber).to;
+        const visibleContentStart = Math.max(contentStart, from);
+        const visibleContentEnd = Math.min(contentEnd, to);
+
+        if (visibleContentStart > visibleContentEnd) {
+          lineNumber = hasClosingFence ? closingLineNumber + 1 : doc.lines + 1;
+          continue;
+        }
+
         const source = doc.sliceString(contentStart, contentEnd);
         const ranges = this.findTokenRanges(source, language.matchers);
 
         for (const range of ranges) {
+          const decorationStart = contentStart + range.start;
+          const decorationEnd = contentStart + range.end;
+          if (decorationEnd < from || decorationStart > to) {
+            continue;
+          }
+
           builder.add(
-            contentStart + range.start,
-            contentStart + range.end,
+            decorationStart,
+            decorationEnd,
             Decoration.mark({
               class: `custom-code-highlight-editor-token custom-code-highlight-editor-${range.name}`
             })
@@ -715,7 +775,20 @@ export default class CustomCodeHighlightPlugin extends Plugin {
       lineNumber = hasClosingFence ? closingLineNumber + 1 : doc.lines + 1;
     }
 
-    return builder.finish();
+  }
+
+  private findFenceSearchStartLine(doc: Text, from: number): number {
+    let lineNumber = doc.lineAt(from).number;
+
+    while (lineNumber > 1) {
+      const line = doc.line(lineNumber);
+      if (/^\s*(`{3,}|~{3,})/.test(line.text)) {
+        return lineNumber;
+      }
+      lineNumber -= 1;
+    }
+
+    return 1;
   }
 
   private isClosingFence(text: string, openingFence: string): boolean {
@@ -789,9 +862,9 @@ class CustomCodeHighlightSettingTab extends PluginSettingTab {
       .setName("Built-in language highlighting")
       .setDesc("Registers built-in language definitions for wasm/wat, Zig, Nix, HCL/Terraform, Kusto/KQL, and AutoHotkey.")
       .addToggle((toggle) => toggle
-        .setValue(this.plugin.settings.includeBuiltInWasm)
+        .setValue(this.plugin.settings.includeBuiltInLanguages)
         .onChange(async (value) => {
-          this.plugin.settings.includeBuiltInWasm = value;
+          this.plugin.settings.includeBuiltInLanguages = value;
           await this.plugin.saveSettings();
           await this.plugin.registerLanguages();
         }));
