@@ -1,7 +1,7 @@
 {
-  "name": "obsidian-custom-code-highlight",
-  "version": "1.0.3",
-  "description": "Configurable syntax highlighting for code blocks.",
+  "name": "obsidian-extended-code-highlight",
+  "version": "1.1.0",
+  "description": "Additional and configurable syntax highlighting for code blocks.",
   "main": "main.js",
   "scripts": {
     "dev": "node esbuild.config.mjs --watch",
@@ -11,8 +11,8 @@
     "obsidian",
     "plugin",
     "syntax-highlighting",
-    "wasm",
-    "wat"
+    "code-blocks",
+    "svelte"
   ],
   "license": "MIT",
   "devDependencies": {
@@ -27,5 +27,16 @@
     "onlyBuiltDependencies": [
       "esbuild"
     ]
+  },
+  "dependencies": {
+    "@codemirror/lang-angular": "^0.1.4",
+    "@codemirror/lang-less": "^6.0.2",
+    "@codemirror/lang-liquid": "^6.3.2",
+    "@codemirror/lang-sass": "^6.0.2",
+    "@codemirror/lang-vue": "^0.1.3",
+    "@codemirror/lang-wast": "^6.0.2",
+    "@codemirror/language": "^6.12.3",
+    "@lezer/highlight": "^1.2.3",
+    "@replit/codemirror-lang-svelte": "^6.0.0"
   }
 }

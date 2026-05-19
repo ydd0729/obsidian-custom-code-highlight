@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "title": "Custom Code Highlight languages",
+  "title": "Extended Code Highlight languages",
   "type": "object",
   "additionalProperties": false,
   "properties": {
@@ -27,6 +27,7 @@
           },
           "tokens": {
             "type": "array",
+            "minItems": 1,
             "items": {
               "type": "object",
               "additionalProperties": false,

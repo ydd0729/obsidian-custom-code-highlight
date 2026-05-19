@@ -1,73 +1,73 @@
-code.custom-code-highlight .token.comment {
+code.extended-code-highlight .token.comment {
   color: var(--text-muted);
   font-style: italic;
 }
 
-code.custom-code-highlight .token.string {
+code.extended-code-highlight .token.string {
   color: var(--color-green);
 }
 
-code.custom-code-highlight .token.keyword {
+code.extended-code-highlight .token.keyword {
   color: var(--color-purple);
 }
 
-code.custom-code-highlight .token.builtin {
+code.extended-code-highlight .token.builtin {
   color: var(--color-cyan, var(--color-blue));
 }
 
-code.custom-code-highlight .token.number {
+code.extended-code-highlight .token.number {
   color: var(--color-orange);
 }
 
-code.custom-code-highlight .token.variable {
+code.extended-code-highlight .token.variable {
   color: var(--color-yellow);
 }
 
-code.custom-code-highlight .token.function {
+code.extended-code-highlight .token.function {
   color: var(--color-blue);
 }
 
-code.custom-code-highlight .token.property {
+code.extended-code-highlight .token.property {
   color: var(--color-pink);
 }
 
-code.custom-code-highlight .token.operator {
+code.extended-code-highlight .token.operator {
   color: var(--text-accent);
 }
 
-.cm-editor .custom-code-highlight-editor-comment {
+.cm-editor .extended-code-highlight-editor-comment {
   color: var(--text-muted);
   font-style: italic;
 }
 
-.cm-editor .custom-code-highlight-editor-string {
+.cm-editor .extended-code-highlight-editor-string {
   color: var(--color-green);
 }
 
-.cm-editor .custom-code-highlight-editor-keyword {
+.cm-editor .extended-code-highlight-editor-keyword {
   color: var(--color-purple);
 }
 
-.cm-editor .custom-code-highlight-editor-builtin {
+.cm-editor .extended-code-highlight-editor-builtin {
   color: var(--color-cyan, var(--color-blue));
 }
 
-.cm-editor .custom-code-highlight-editor-number {
+.cm-editor .extended-code-highlight-editor-number {
   color: var(--color-orange);
 }
 
-.cm-editor .custom-code-highlight-editor-variable {
+.cm-editor .extended-code-highlight-editor-variable {
   color: var(--color-yellow);
 }
 
-.cm-editor .custom-code-highlight-editor-function {
+.cm-editor .extended-code-highlight-editor-function {
   color: var(--color-blue);
 }
 
-.cm-editor .custom-code-highlight-editor-property {
+.cm-editor .extended-code-highlight-editor-property {
   color: var(--color-pink);
 }
 
-.cm-editor .custom-code-highlight-editor-operator {
+.cm-editor .extended-code-highlight-editor-operator {
   color: var(--text-accent);
 }

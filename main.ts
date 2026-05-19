@@ -1,421 +1,28 @@
 import { RangeSetBuilder, Text } from "@codemirror/state";
 import { Decoration, DecorationSet, EditorView, ViewPlugin, ViewUpdate } from "@codemirror/view";
-import { App, MarkdownPostProcessorContext, Notice, Plugin, PluginSettingTab, Setting } from "obsidian";
-
-type PrismPattern = RegExp | {
-  pattern: RegExp;
-  lookbehind?: boolean;
-  greedy?: boolean;
-};
-
-type PrismGrammar = Record<string, PrismPattern | PrismPattern[]>;
-
-type PrismLike = {
-  languages: Record<string, PrismGrammar>;
-  hooks?: {
-    run: (name: string, env: unknown) => void;
-  };
-  highlightElement?: (element: Element) => void;
-};
-
-type TokenConfig = {
-  name: string;
-  pattern: string;
-  flags?: string;
-  lookbehind?: boolean;
-  greedy?: boolean;
-};
-
-type LanguageConfig = {
-  id: string;
-  aliases?: string[];
-  tokens: TokenConfig[];
-};
-
-type LanguagesFile = {
-  languages?: LanguageConfig[];
-};
-
-type TokenMatcher = {
-  name: string;
-  pattern: RegExp;
-};
-
-type RuntimeLanguage = {
-  ids: string[];
-  normalizedIds: Set<string>;
-  idPattern: RegExp;
-  matchers: TokenMatcher[];
-};
-
-type TokenRange = {
-  start: number;
-  end: number;
-  name: string;
-};
-
-type PluginSettings = {
-  languageConfigPath: string;
-  includeBuiltInLanguages: boolean;
-};
-
-const DEFAULT_SETTINGS: PluginSettings = {
-  languageConfigPath: "languages.json",
-  includeBuiltInLanguages: true
-};
-
-const WASM_LANGUAGE: LanguageConfig = {
-  id: "wasm",
-  aliases: ["wat", "wast", "webassembly"],
-  tokens: [
-    {
-      name: "comment",
-      pattern: "\\(;[\\s\\S]*?;\\)|;;.*",
-      greedy: true
-    },
-    {
-      name: "string",
-      pattern: "\"(?:\\\\[\\s\\S]|[^\"\\\\])*\"",
-      greedy: true
-    },
-    {
-      name: "keyword",
-      pattern: "\\b(?:module|func|param|result|local|global|memory|table|elem|data|type|import|export|start|if|then|else|end|block|loop|br|br_if|br_table|return|call|call_indirect|local\\.get|local\\.set|local\\.tee|global\\.get|global\\.set|memory\\.(?:size|grow|copy|fill|init)|table\\.(?:get|set|size|grow|fill|copy|init)|drop|select|nop|unreachable)\\b"
-    },
-    {
-      name: "builtin",
-      pattern: "\\b(?:i32|i64|f32|f64|v128|funcref|externref)\\b(?:\\.[A-Za-z0-9_.$-]+)?"
-    },
-    {
-      name: "number",
-      pattern: "[-+]?\\b(?:0x[\\da-fA-F](?:[\\da-fA-F_]*\\.?[\\da-fA-F_]*)?|\\d(?:[\\d_]*\\.?[\\d_]*))(?:[eEpP][-+]?\\d[\\d_]*)?\\b|\\b(?:inf|nan(?::0x[\\da-fA-F_]+)?)\\b"
-    },
-    {
-      name: "variable",
-      pattern: "\\$[\\w!#$%&'*+./:<=>?@\\\\^`|~-]+"
-    },
-    {
-      name: "operator",
-      pattern: "[()]"
-    }
-  ]
-};
-
-const ZIG_LANGUAGE: LanguageConfig = {
-  id: "zig",
-  tokens: [
-    {
-      name: "comment",
-      pattern: "//.*",
-      flags: "m"
-    },
-    {
-      name: "string",
-      pattern: "\"(?:\\\\.|[^\"\\\\])*\"|'(?:\\\\.|[^'\\\\])*'",
-      greedy: true
-    },
-    {
-      name: "keyword",
-      pattern: "\\b(?:addrspace|align|allowzero|and|anyframe|anytype|asm|async|await|break|callconv|catch|comptime|const|continue|defer|else|enum|errdefer|error|export|extern|fn|for|if|inline|linksection|noalias|noinline|nosuspend|null|opaque|or|orelse|packed|pub|resume|return|struct|suspend|switch|test|threadlocal|try|union|unreachable|usingnamespace|var|volatile|while)\\b"
-    },
-    {
-      name: "builtin",
-      pattern: "@[A-Za-z_][A-Za-z0-9_]*|\\b(?:bool|void|noreturn|type|anyerror|comptime_int|comptime_float|isize|usize|i\\d+|u\\d+|f16|f32|f64|f80|f128)\\b"
-    },
-    {
-      name: "number",
-      pattern: "\\b(?:0x[\\da-fA-F_]+|0b[01_]+|\\d[\\d_]*(?:\\.\\d[\\d_]*)?(?:[eE][-+]?\\d[\\d_]*)?)\\b"
-    },
-    {
-      name: "function",
-      pattern: "\\b[A-Za-z_][A-Za-z0-9_]*(?=\\s*\\()"
-    },
-    {
-      name: "operator",
-      pattern: "[-+*/%=!<>|&~^?:]+|\\.\\.?|[{}()[\\],;]"
-    }
-  ]
-};
-
-const NIX_LANGUAGE: LanguageConfig = {
-  id: "nix",
-  aliases: ["nixos"],
-  tokens: [
-    {
-      name: "comment",
-      pattern: "#.*|/\\*[\\s\\S]*?\\*/",
-      greedy: true
-    },
-    {
-      name: "string",
-      pattern: "''[\\s\\S]*?''|\"(?:\\\\.|[^\"\\\\])*\"",
-      greedy: true
-    },
-    {
-      name: "keyword",
-      pattern: "\\b(?:assert|else|if|in|inherit|let|or|rec|then|with)\\b"
-    },
-    {
-      name: "builtin",
-      pattern: "\\b(?:abort|baseNameOf|builtins|derivation|dirOf|fetchTarball|import|isNull|map|placeholder|removeAttrs|throw|toString)\\b"
-    },
-    {
-      name: "number",
-      pattern: "\\b\\d+(?:\\.\\d+)?\\b"
-    },
-    {
-      name: "property",
-      pattern: "\\b[A-Za-z_][A-Za-z0-9_'-]*(?=\\s*=)"
-    },
-    {
-      name: "operator",
-      pattern: "[-+*/!<>=&|?:@]+|\\.\\.\\.?|[{}()[\\],;]"
-    }
-  ]
-};
-
-const HCL_LANGUAGE: LanguageConfig = {
-  id: "hcl",
-  aliases: ["terraform", "tf", "tfvars"],
-  tokens: [
-    {
-      name: "comment",
-      pattern: "#.*|//.*|/\\*[\\s\\S]*?\\*/",
-      greedy: true
-    },
-    {
-      name: "string",
-      pattern: "<<-?\\w+[\\s\\S]*?\\n\\w+|\"(?:\\\\.|[^\"\\\\])*\"",
-      greedy: true
-    },
-    {
-      name: "keyword",
-      pattern: "\\b(?:resource|data|provider|variable|output|module|locals|terraform|dynamic|for|in|if|null|true|false)\\b"
-    },
-    {
-      name: "builtin",
-      pattern: "\\b(?:count|each|for_each|depends_on|lifecycle|provisioner|connection|source|version|required_providers|required_version|backend)\\b"
-    },
-    {
-      name: "number",
-      pattern: "\\b\\d+(?:\\.\\d+)?\\b"
-    },
-    {
-      name: "property",
-      pattern: "\\b[A-Za-z_][A-Za-z0-9_-]*(?=\\s*=)"
-    },
-    {
-      name: "variable",
-      pattern: "\\b(?:var|local|module|data|path|terraform|each|self)\\.[A-Za-z0-9_.-]+"
-    },
-    {
-      name: "operator",
-      pattern: "=>|==|!=|<=|>=|&&|\\|\\||[-+*/%<>=!?:]+|[{}()[\\],.]"
-    }
-  ]
-};
-
-const KUSTO_LANGUAGE: LanguageConfig = {
-  id: "kusto",
-  aliases: ["kql"],
-  tokens: [
-    {
-      name: "comment",
-      pattern: "//.*",
-      flags: "m"
-    },
-    {
-      name: "string",
-      pattern: "@?\"(?:\"\"|\\\\.|[^\"\\\\])*\"|'(?:''|\\\\.|[^'\\\\])*'",
-      greedy: true
-    },
-    {
-      name: "keyword",
-      pattern: "\\b(?:let|where|project|project-away|extend|summarize|by|join|kind|on|union|take|limit|top|order|sort|asc|desc|render|evaluate|parse|mv-expand|distinct|count|datatable|between|contains|has|in|and|or|not)\\b",
-      flags: "i"
-    },
-    {
-      name: "builtin",
-      pattern: "\\b(?:ago|bin|case|datetime|dynamic|iff|isnotempty|isnull|isempty|now|strcat|split|tolower|toupper|tostring|toint|tolong|todouble|summarize|countif|dcount|make_set|make_list)\\b",
-      flags: "i"
-    },
-    {
-      name: "number",
-      pattern: "\\b\\d+(?:\\.\\d+)?\\b"
-    },
-    {
-      name: "operator",
-      pattern: "\\|\\||[|=<>!~+-/*%,.;()[\\]{}]"
-    }
-  ]
-};
-
-const AUTOHOTKEY_LANGUAGE: LanguageConfig = {
-  id: "autohotkey",
-  aliases: ["ahk"],
-  tokens: [
-    {
-      name: "comment",
-      pattern: ";.*|/\\*[\\s\\S]*?\\*/",
-      greedy: true
-    },
-    {
-      name: "string",
-      pattern: "\"(?:\"\"|`.|[^\"])*\"|'(?:''|`.|[^'])*'",
-      greedy: true
-    },
-    {
-      name: "keyword",
-      pattern: "\\b(?:if|else|return|global|local|static|class|extends|try|catch|finally|throw|loop|while|for|in|break|continue|switch|case|default|goto|gosub|new|and|or|not)\\b",
-      flags: "i"
-    },
-    {
-      name: "builtin",
-      pattern: "\\b(?:MsgBox|Send|SendInput|Click|Sleep|Run|WinWait|WinActivate|Hotkey|SetTimer|InputBox|FileRead|FileAppend|RegRead|RegWrite|StrSplit|SubStr|InStr|Format)\\b",
-      flags: "i"
-    },
-    {
-      name: "number",
-      pattern: "\\b(?:0x[\\da-fA-F]+|\\d+(?:\\.\\d+)?)\\b"
-    },
-    {
-      name: "variable",
-      pattern: "%[A-Za-z_][A-Za-z0-9_]*%|\\b[A-Za-z_][A-Za-z0-9_]*(?=\\s*:=)"
-    },
-    {
-      name: "operator",
-      pattern: "::|:=|=>|==|!=|<=|>=|&&|\\|\\||[-+*/%=!<>.&|^~?:]+|[{}()[\\],.]"
-    }
-  ]
-};
-
-const GDSCRIPT_LANGUAGE: LanguageConfig = {
-  id: "gdscript",
-  aliases: ["gd"],
-  tokens: [
-    {
-      name: "comment",
-      pattern: "#.*",
-      flags: "m"
-    },
-    {
-      name: "string",
-      pattern: "\"\"\"[\\s\\S]*?\"\"\"|'''[\\s\\S]*?'''|\"(?:\\\\.|[^\"\\\\])*\"|'(?:\\\\.|[^'\\\\])*'",
-      greedy: true
-    },
-    {
-      name: "keyword",
-      pattern: "\\b(?:and|as|assert|await|break|breakpoint|class|class_name|const|continue|elif|else|enum|extends|for|func|if|in|is|match|not|or|pass|preload|return|self|signal|static|super|tool|var|while|yield)\\b"
-    },
-    {
-      name: "builtin",
-      pattern: "\\b(?:Array|Basis|Callable|Color|Dictionary|Node|Node2D|Object|PackedScene|Quaternion|Rect2|Resource|SceneTree|Signal|String|StringName|Transform2D|Transform3D|Vector2|Vector3|Vector4|bool|float|int|void)\\b|@[A-Za-z_][A-Za-z0-9_]*"
-    },
-    {
-      name: "number",
-      pattern: "\\b(?:0x[\\da-fA-F_]+|0b[01_]+|\\d[\\d_]*(?:\\.\\d[\\d_]*)?)\\b"
-    },
-    {
-      name: "function",
-      pattern: "\\b[A-Za-z_][A-Za-z0-9_]*(?=\\s*\\()"
-    },
-    {
-      name: "operator",
-      pattern: ":=|==|!=|<=|>=|&&|\\|\\||[-+*/%=!<>.&|^~?:]+|[{}()[\\],.]"
-    }
-  ]
-};
-
-const MLIR_LANGUAGE: LanguageConfig = {
-  id: "mlir",
-  tokens: [
-    {
-      name: "comment",
-      pattern: "//.*",
-      flags: "m"
-    },
-    {
-      name: "string",
-      pattern: "\"(?:\\\\.|[^\"\\\\])*\"",
-      greedy: true
-    },
-    {
-      name: "keyword",
-      pattern: "\\b(?:affine_map|affine_set|attributes|dense|false|func|loc|module|none|return|strided|true|type|unit)\\b"
-    },
-    {
-      name: "builtin",
-      pattern: "\\b(?:bf16|f16|f32|f64|i1|i8|i16|i32|i64|index|memref|tensor|vector)\\b(?:<[^>]+>)?"
-    },
-    {
-      name: "number",
-      pattern: "[-+]?\\b(?:0x[\\da-fA-F]+|\\d+(?:\\.\\d+)?)\\b"
-    },
-    {
-      name: "variable",
-      pattern: "%[A-Za-z0-9_.$-]+|#[A-Za-z0-9_.$-]+|@[A-Za-z0-9_.$-]+|![A-Za-z0-9_.$-]+"
-    },
-    {
-      name: "operator",
-      pattern: "->|=>|[{}()[\\],:=<>*x?]|\\.\\.\\."
-    }
-  ]
-};
-
-const LEAN_LANGUAGE: LanguageConfig = {
-  id: "lean",
-  aliases: ["lean4"],
-  tokens: [
-    {
-      name: "comment",
-      pattern: "--.*|/-[\\s\\S]*?-/",
-      greedy: true
-    },
-    {
-      name: "string",
-      pattern: "\"(?:\\\\.|[^\"\\\\])*\"",
-      greedy: true
-    },
-    {
-      name: "keyword",
-      pattern: "\\b(?:abbrev|axiom|by|calc|case|class|def|deriving|do|else|end|example|extends|forall|fun|if|import|in|inductive|infix|instance|let|macro|match|mutual|namespace|open|opaque|partial|private|protected|public|rec|section|simp|structure|syntax|termination_by|then|theorem|universe|variable|where|with)\\b"
-    },
-    {
-      name: "builtin",
-      pattern: "\\b(?:Bool|Char|False|Fin|Float|IO|Int|List|Nat|Option|Prop|Set|Sort|String|Subtype|True|Type|UInt8|UInt16|UInt32|UInt64|Unit)\\b"
-    },
-    {
-      name: "number",
-      pattern: "\\b\\d+(?:\\.\\d+)?\\b"
-    },
-    {
-      name: "function",
-      pattern: "\\b[A-Za-z_][A-Za-z0-9_'.]*(?=\\s*(?:\\{|\\(|:|:=))"
-    },
-    {
-      name: "operator",
-      pattern: "=>|:=|->|<-|←|→|↔|∀|∃|λ|fun|[{}()[\\],.:;=<>+\\-*/|&!?'^]+"
-    }
-  ]
-};
-
-const BUILT_IN_LANGUAGES: LanguageConfig[] = [
-  WASM_LANGUAGE,
-  ZIG_LANGUAGE,
-  NIX_LANGUAGE,
-  HCL_LANGUAGE,
-  KUSTO_LANGUAGE,
-  AUTOHOTKEY_LANGUAGE,
-  GDSCRIPT_LANGUAGE,
-  MLIR_LANGUAGE,
-  LEAN_LANGUAGE
-];
+import { MarkdownPostProcessorContext, Notice, Plugin } from "obsidian";
+import { BUILT_IN_LANGUAGES } from "./src/languages";
+import { findParserTokenRanges } from "./src/parser-highlight";
+import { ExtendedCodeHighlightSettingTab } from "./src/settings-tab";
+import {
+  DEFAULT_SETTINGS
+} from "./src/types";
+import type {
+  LanguageConfig,
+  LanguagesFile,
+  PluginSettings,
+  PrismGrammar,
+  PrismLike,
+  RuntimeLanguage,
+  TokenMatcher,
+  TokenRange
+} from "./src/types";
 
 const LANGUAGE_ID_PATTERN = /^[A-Za-z0-9_-]+$/;
 const TOKEN_NAME_PATTERN = /^[A-Za-z0-9_-]+$/;
 const VALID_REGEXP_FLAGS = /^[dgimsuvy]*$/;
 
-export default class CustomCodeHighlightPlugin extends Plugin {
+export default class ExtendedCodeHighlightPlugin extends Plugin {
   settings: PluginSettings = DEFAULT_SETTINGS;
   private registeredLanguageIds = new Set<string>();
   private runtimeLanguages: RuntimeLanguage[] = [];
@@ -423,14 +30,14 @@ export default class CustomCodeHighlightPlugin extends Plugin {
   async onload(): Promise<void> {
     await this.loadSettings();
 
-    this.addSettingTab(new CustomCodeHighlightSettingTab(this.app, this));
+    this.addSettingTab(new ExtendedCodeHighlightSettingTab(this.app, this));
 
     this.addCommand({
-      id: "reload-custom-highlight-languages",
-      name: "Reload custom highlight languages",
+      id: "reload-extended-highlight-languages",
+      name: "Reload extended highlight languages",
       callback: async () => {
         await this.registerLanguages();
-        new Notice("Custom highlight languages reloaded.");
+        new Notice("Extended highlight languages reloaded.");
       }
     });
 
@@ -479,14 +86,18 @@ export default class CustomCodeHighlightPlugin extends Plugin {
         ids,
         normalizedIds: new Set(ids.map((id) => id.toLowerCase())),
         idPattern: this.createLanguageIdPattern(ids),
-        matchers: this.createTokenMatchers(language)
+        matchers: this.createTokenMatchers(language),
+        parserLanguage: language.isCustom ? undefined : language.parserLanguage,
+        isCustom: language.isCustom ?? false,
+        preferPrism: !language.isCustom && language.preferPrism === true
       });
 
+      const shouldUseRegexPrismGrammar = !language.preferPrism || !this.hasNativePrismGrammar(prism, ids);
       for (const id of ids) {
-        if (prism) {
+        if (prism && shouldUseRegexPrismGrammar) {
           prism.languages[id] = grammar;
+          this.registeredLanguageIds.add(id);
         }
-        this.registeredLanguageIds.add(id);
       }
     }
 
@@ -516,10 +127,10 @@ export default class CustomCodeHighlightPlugin extends Plugin {
     const config = await this.readConfiguredLanguages();
     for (const language of config.languages ?? []) {
       try {
-        languages.push(this.validateLanguage(language));
+        languages.push({ ...this.validateLanguage(language), isCustom: true });
       } catch (error) {
         const message = error instanceof Error ? error.message : String(error);
-        new Notice(`Skipped custom highlight language: ${message}`);
+        new Notice(`Skipped extended highlight language: ${message}`);
       }
     }
 
@@ -693,7 +304,7 @@ export default class CustomCodeHighlightPlugin extends Plugin {
   }
 
   private highlightCodeElement(element: Element, language: RuntimeLanguage): void {
-    if (element.hasClass("custom-code-highlight")) {
+    if (element.hasClass("extended-code-highlight")) {
       return;
     }
 
@@ -702,9 +313,13 @@ export default class CustomCodeHighlightPlugin extends Plugin {
       return;
     }
 
+    if (language.preferPrism && this.highlightWithNativePrism(element, language)) {
+      return;
+    }
+
     element.empty();
-    element.addClass("custom-code-highlight");
-    element.setAttr("data-custom-code-highlighted", "true");
+    element.addClass("extended-code-highlight");
+    element.setAttr("data-extended-code-highlighted", "true");
     this.renderHighlightedText(element, text, language);
   }
 
@@ -866,7 +481,7 @@ export default class CustomCodeHighlightPlugin extends Plugin {
         }
 
         const source = doc.sliceString(contentStart, contentEnd);
-        const ranges = this.findTokenRanges(source, language.matchers);
+        const ranges = this.findEditorTokenRanges(source, language);
 
         for (const range of ranges) {
           const decorationStart = contentStart + range.start;
@@ -879,7 +494,7 @@ export default class CustomCodeHighlightPlugin extends Plugin {
             decorationStart,
             decorationEnd,
             Decoration.mark({
-              class: `custom-code-highlight-editor-token custom-code-highlight-editor-${range.name}`
+              class: `extended-code-highlight-editor-token extended-code-highlight-editor-${range.name}`
             })
           );
         }
@@ -947,49 +562,27 @@ export default class CustomCodeHighlightPlugin extends Plugin {
     const prism = (window as Window & { Prism?: PrismLike }).Prism;
     return prism ?? null;
   }
-}
 
-class CustomCodeHighlightSettingTab extends PluginSettingTab {
-  constructor(app: App, private plugin: CustomCodeHighlightPlugin) {
-    super(app, plugin);
+  private hasNativePrismGrammar(prism: PrismLike | null, ids: string[]): boolean {
+    return Boolean(prism && ids.some((id) => prism.languages[id]));
   }
 
-  display(): void {
-    const { containerEl } = this;
-    containerEl.empty();
+  private highlightWithNativePrism(element: Element, language: RuntimeLanguage): boolean {
+    const prism = this.getPrism();
+    if (!prism || !prism.highlightElement || !this.hasNativePrismGrammar(prism, language.ids)) {
+      return false;
+    }
 
-    containerEl.createEl("h2", { text: "Custom Code Highlight" });
+    element.addClass("extended-code-highlight");
+    element.setAttr("data-extended-code-highlighted", "true");
+    prism.highlightElement(element);
+    return true;
+  }
 
-    new Setting(containerEl)
-      .setName("Language config file")
-      .setDesc("JSON file inside this plugin folder. Use languages.example.json as a starting point.")
-      .addText((text) => text
-        .setPlaceholder("languages.json")
-        .setValue(this.plugin.settings.languageConfigPath)
-        .onChange(async (value) => {
-          this.plugin.settings.languageConfigPath = value.trim() || DEFAULT_SETTINGS.languageConfigPath;
-          await this.plugin.saveSettings();
-        }));
-
-    new Setting(containerEl)
-      .setName("Built-in language highlighting")
-      .setDesc("Registers built-in language definitions for wasm/wat, Zig, Nix, HCL/Terraform, Kusto/KQL, AutoHotkey, GDScript, MLIR, and Lean.")
-      .addToggle((toggle) => toggle
-        .setValue(this.plugin.settings.includeBuiltInLanguages)
-        .onChange(async (value) => {
-          this.plugin.settings.includeBuiltInLanguages = value;
-          await this.plugin.saveSettings();
-          await this.plugin.registerLanguages();
-        }));
-
-    new Setting(containerEl)
-      .setName("Reload languages")
-      .setDesc("Reloads the configured language file and refreshes visible code blocks.")
-      .addButton((button) => button
-        .setButtonText("Reload")
-        .onClick(async () => {
-          await this.plugin.registerLanguages();
-          new Notice("Custom highlight languages reloaded.");
-        }));
+  private findEditorTokenRanges(text: string, language: RuntimeLanguage): TokenRange[] {
+    if (language.parserLanguage) {
+      return findParserTokenRanges(text, language.parserLanguage);
+    }
+    return this.findTokenRanges(text, language.matchers);
   }
 }
