@@ -20,23 +20,6 @@ import { wastLanguage } from "@codemirror/lang-wast";
 import { xmlLanguage } from "@codemirror/lang-xml";
 import { yamlLanguage } from "@codemirror/lang-yaml";
 import { svelteLanguage } from "@replit/codemirror-lang-svelte";
-import WasmRegex from "./regex-languages/wasm.json";
-import ZigRegex from "./regex-languages/zig.json";
-import NixRegex from "./regex-languages/nix.json";
-import HclRegex from "./regex-languages/hcl.json";
-import KustoRegex from "./regex-languages/kusto.json";
-import GlslRegex from "./regex-languages/glsl.json";
-import AutohotkeyRegex from "./regex-languages/autohotkey.json";
-import GdscriptRegex from "./regex-languages/gdscript.json";
-import MlirRegex from "./regex-languages/mlir.json";
-import LeanRegex from "./regex-languages/lean.json";
-import AngularRegex from "./regex-languages/angular.json";
-import VueRegex from "./regex-languages/vue.json";
-import LiquidRegex from "./regex-languages/liquid.json";
-import LessRegex from "./regex-languages/less.json";
-import SassRegex from "./regex-languages/sass.json";
-import SvelteRegex from "./regex-languages/svelte.json";
-import GenericRegex from "./regex-languages/generic.json";
 import type { LanguageConfig } from "./types";
 
 type PrismSupportedLanguage = {
@@ -344,27 +327,6 @@ const PRISM_SUPPORTED_LANGUAGES: PrismSupportedLanguage[] = [
   { id: "zig" }
 ];
 
-const REGEX_LANGUAGES = [
-  WasmRegex,
-  ZigRegex,
-  NixRegex,
-  HclRegex,
-  KustoRegex,
-  GlslRegex,
-  AutohotkeyRegex,
-  GdscriptRegex,
-  MlirRegex,
-  LeanRegex,
-  AngularRegex,
-  VueRegex,
-  LiquidRegex,
-  LessRegex,
-  SassRegex,
-  SvelteRegex,
-] as LanguageConfig[];
-
-const GENERIC_REGEX_TOKENS = GenericRegex.tokens;
-
 const CODEMIRROR_LANGUAGES: LanguageConfig[] = [
   { id: "angular", aliases: ["ng"], parserLanguage: angularLanguage, preferPrism: true },
   { id: "css", parserLanguage: cssLanguage, preferPrism: true },
@@ -393,14 +355,7 @@ const CODEMIRROR_LANGUAGES: LanguageConfig[] = [
   { id: "svelte", aliases: ["sv"], parserLanguage: svelteLanguage, preferPrism: true },
 ];
 
-const REGEX_LANGUAGE_BY_ID = new Map<string, LanguageConfig>();
-for (const language of REGEX_LANGUAGES) {
-  for (const id of getLanguageIds(language)) {
-    REGEX_LANGUAGE_BY_ID.set(id.toLowerCase(), language);
-  }
-}
-
-const CODEMIRROR_BUILT_IN_LANGUAGES = CODEMIRROR_LANGUAGES.map(withRegexFallback);
+const CODEMIRROR_BUILT_IN_LANGUAGES = CODEMIRROR_LANGUAGES;
 const CODEMIRROR_LANGUAGE_IDS = new Set(CODEMIRROR_BUILT_IN_LANGUAGES.flatMap(getLanguageIds).map((id) => id.toLowerCase()));
 
 const PRISM_BUILT_IN_LANGUAGES: LanguageConfig[] = PRISM_SUPPORTED_LANGUAGES.flatMap((language) => {
@@ -409,12 +364,9 @@ const PRISM_BUILT_IN_LANGUAGES: LanguageConfig[] = PRISM_SUPPORTED_LANGUAGES.fla
     return [];
   }
   const [id, ...aliases] = ids;
-  const regexLanguage = findRegexLanguage({ id, aliases });
   return [{
-    ...(regexLanguage ?? {}),
     id,
-    aliases: mergeAliases(regexLanguage?.aliases, aliases),
-    tokens: regexLanguage?.tokens ?? GENERIC_REGEX_TOKENS,
+    aliases: aliases.length > 0 ? aliases : undefined,
     preferPrism: true
   }];
 });
@@ -424,35 +376,6 @@ export const BUILT_IN_LANGUAGES: LanguageConfig[] = [
   ...PRISM_BUILT_IN_LANGUAGES
 ];
 
-function withRegexFallback(language: LanguageConfig): LanguageConfig {
-  const regexLanguage = findRegexLanguage(language);
-  if (!regexLanguage) {
-    return language;
-  }
-  return {
-    ...regexLanguage,
-    ...language,
-    aliases: mergeAliases(regexLanguage.aliases, language.aliases),
-    tokens: regexLanguage.tokens
-  };
-}
-
-function findRegexLanguage(language: LanguageConfig): LanguageConfig | undefined {
-  for (const id of getLanguageIds(language)) {
-    const regexLanguage = REGEX_LANGUAGE_BY_ID.get(id.toLowerCase());
-    if (regexLanguage) {
-      return regexLanguage;
-    }
-  }
-  return undefined;
-}
-
 function getLanguageIds(language: PrismSupportedLanguage | LanguageConfig): string[] {
   return [language.id, ...(language.aliases ?? [])];
-}
-
-function mergeAliases(left: string[] | undefined, right: string[] | undefined): string[] | undefined {
-  const aliases = [...(left ?? []), ...(right ?? [])];
-  const uniqueAliases = Array.from(new Set(aliases));
-  return uniqueAliases.length > 0 ? uniqueAliases : undefined;
 }

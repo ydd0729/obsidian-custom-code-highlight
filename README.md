@@ -2,7 +2,7 @@
 
 Extended Code Highlight adds broader, theme-compatible syntax highlighting for Obsidian code blocks in Reading view, Source mode, and Live Preview.
 
-It supports all bundled PrismJS languages, bundled CodeMirror parser languages, and optional user-defined regex languages.
+It supports all bundled PrismJS languages, bundled CodeMirror parser languages, and optional regex languages loaded from JSON files.
 
 ## 🚀 Features
 
@@ -11,43 +11,33 @@ It supports all bundled PrismJS languages, bundled CodeMirror parser languages, 
 - Uses CodeMirror parser highlighting where bundled parser support exists.
 - Keeps highlighted code blocks editable in Live Preview.
 - Reuses Obsidian's native `.token.*` and `.cm-*` theme classes.
-- Lets you add custom regex-based languages with `languages.json`.
+- Lets you add custom regex-based languages as JSON files.
 
 ## 🌐 Language Support
 
-Reading view supports the PrismJS language list bundled with this plugin, including aliases such as `js`, `ts`, `py`, `yml`, and many more.
+Use the normal language name after a fenced code block, such as `js`, `ts`, `python`, `json`, `css`, `html`, `glsl`, `svelte`, `vue`, `zig`, `nix`, or `wasm`.
 
-Editor and Live Preview include bundled CodeMirror parser support for:
+The plugin supports:
 
-| Language | Fence names |
-| --- | --- |
-| Angular templates | `angular`, `ng` |
-| CSS | `css` |
-| C++ | `cpp`, `c++`, `cxx`, `cc`, `hpp`, `h++` |
-| Go | `go` |
-| HTML | `html`, `htm` |
-| Java | `java` |
-| JavaScript | `javascript`, `js`, `mjs`, `cjs` |
-| TypeScript | `typescript`, `ts` |
-| JSX | `jsx` |
-| TSX | `tsx` |
-| Jinja | `jinja`, `jinja2`, `django` |
-| JSON | `json`, `webmanifest` |
-| Less | `less` |
-| Liquid templates | `liquid`, `shopify` |
-| Markdown | `markdown`, `md` |
-| PHP | `php` |
-| Python | `python`, `py` |
-| Rust | `rust`, `rs` |
-| Sass / SCSS | `sass`, `scss` |
-| SQL | `sql` |
-| Vue single-file components | `vue` |
-| WebAssembly text format | `wasm`, `wat`, `wast`, `webassembly` |
-| XML | `xml`, `xsd` |
-| YAML | `yaml`, `yml` |
-| Svelte | `svelte`, `sv` |
+- Every PrismJS language bundled from the PrismJS supported language list.
+- Every CodeMirror parser language bundled in this plugin.
+- Regex fallback languages shipped as separate JSON files.
+- User-defined regex languages that use the same JSON format.
 
-Additional built-in regex definitions cover WebAssembly text, Zig, Nix, HCL/Terraform, Kusto/KQL, GLSL, AutoHotkey, GDScript, MLIR, Lean, Angular, Vue, Liquid, Less, Sass/SCSS, and Svelte.
+You can check the upstream language lists here:
+
+- PrismJS supported languages: [prismjs.com/#supported-languages](https://prismjs.com/#supported-languages)
+- CodeMirror parser packages: [codemirror.net/#language-support](https://codemirror.net/#language-support)
+
+Bundled fallback JSON files currently cover MLIR and Lean. Other bundled languages use PrismJS and/or CodeMirror support.
+
+Highlighting priority depends on the Obsidian view:
+
+- Reading view: PrismJS grammar first, then CodeMirror parser translated to Prism-style `.token.*` spans, then regex fallback.
+- Source mode and Live Preview: CodeMirror parser first, then PrismJS token stream translated to Obsidian/CodeMirror `.cm-*` classes, then regex fallback.
+- Regex JSON languages always use their token rules.
+
+If a language is not built in, add a JSON file for it.
 
 ## 🧩 Examples
 
@@ -75,34 +65,30 @@ void main() {
 
 ## ⚙️ Custom Languages
 
-Create `languages.json` in the plugin directory:
+Create one JSON file per language in the plugin's `languages` folder:
 
 ```text
-<your-vault>/.obsidian/plugins/extended-code-highlight/languages.json
+<your-vault>/.obsidian/plugins/extended-code-highlight/languages/
 ```
 
 Example:
 
 ```json
 {
-  "languages": [
-    {
-      "id": "mydsl",
-      "aliases": ["my-dsl"],
-      "tokens": [
-        { "name": "comment", "pattern": ";.*", "flags": "m" },
-        { "name": "keyword", "pattern": "\\b(foo|bar|baz)\\b" },
-        { "name": "number", "pattern": "\\b\\d+(?:\\.\\d+)?\\b" },
-        { "name": "string", "pattern": "\"(?:\\\\.|[^\"\\\\])*\"" }
-      ]
-    }
+  "id": "mydsl",
+  "aliases": ["my-dsl"],
+  "tokens": [
+    { "name": "comment", "pattern": ";.*", "flags": "m" },
+    { "name": "keyword", "pattern": "\\b(foo|bar|baz)\\b" },
+    { "name": "number", "pattern": "\\b\\d+(?:\\.\\d+)?\\b" },
+    { "name": "string", "pattern": "\"(?:\\\\.|[^\"\\\\])*\"" }
   ]
 }
 ```
 
 Supported token names include `comment`, `keyword`, `string`, `number`, `builtin`, `variable`, `function`, `property`, and `operator`.
 
-After editing `languages.json`, run the `Reload extended highlight languages` command or disable and re-enable the plugin.
+After editing a language JSON file, run the `Reload extended highlight languages` command or disable and re-enable the plugin.
 
 ## 🎨 Styling
 
@@ -133,7 +119,7 @@ Required files:
 ```text
 manifest.json
 main.js
-styles.css
+languages/*.json
 ```
 
 Then enable `Extended Code Highlight` in Obsidian's Community plugins settings.

@@ -14,10 +14,10 @@ export class ExtendedCodeHighlightSettingTab extends PluginSettingTab {
     containerEl.createEl("h2", { text: "Extended Code Highlight" });
 
     new Setting(containerEl)
-      .setName("Language config file")
-      .setDesc("JSON file inside this plugin folder. Use languages.example.json as a starting point.")
+      .setName("Language config path")
+      .setDesc("JSON file or folder inside this plugin folder. The default folder is languages.")
       .addText((text) => text
-        .setPlaceholder("languages.json")
+        .setPlaceholder("languages")
         .setValue(this.plugin.settings.languageConfigPath)
         .onChange(async (value) => {
           this.plugin.settings.languageConfigPath = value.trim() || DEFAULT_SETTINGS.languageConfigPath;
@@ -26,7 +26,7 @@ export class ExtendedCodeHighlightSettingTab extends PluginSettingTab {
 
     new Setting(containerEl)
       .setName("Built-in language highlighting")
-      .setDesc("Registers built-in language definitions for wasm/wat, Zig, Nix, HCL/Terraform, Kusto/KQL, AutoHotkey, GDScript, MLIR, Lean, Angular, Vue, Liquid, Less, Sass/SCSS, and Svelte.")
+      .setDesc("Registers bundled PrismJS and CodeMirror language support. Regex JSON files are loaded from the configured language path.")
       .addToggle((toggle) => toggle
         .setValue(this.plugin.settings.includeBuiltInLanguages)
         .onChange(async (value) => {

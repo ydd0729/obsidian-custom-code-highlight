@@ -1,0 +1,13 @@
+{
+  "id": "lean",
+  "aliases": ["lean4"],
+  "tokens": [
+    { "name": "comment", "pattern": "--.*|/-[\\s\\S]*?-/", "greedy": true },
+    { "name": "string", "pattern": "\"(?:\\\\.|[^\"\\\\])*\"", "greedy": true },
+    { "name": "keyword", "pattern": "\\b(?:abbrev|axiom|by|calc|class|def|deriving|do|else|end|example|have|if|import|in|inductive|infix|instance|let|macro|match|namespace|notation|opaque|open|partial|private|protected|return|section|simp|structure|syntax|termination_by|theorem|then|universe|variable|where|with)\\b" },
+    { "name": "builtin", "pattern": "\\b(?:Bool|Char|False|Fin|Float|IO|Int|List|Nat|Option|Prop|String|True|Type|Unit)\\b" },
+    { "name": "number", "pattern": "\\b\\d+(?:\\.\\d+)?\\b" },
+    { "name": "function", "pattern": "\\b[A-Za-z_][A-Za-z0-9_'.]*\\b(?=\\s*(?:\\(|:|:=))" },
+    { "name": "operator", "pattern": ":=|=>|->|←|→|∀|∃|λ|\\.|[-+*/%=<>:|&!~^]+|[{}()[\\],;]" }
+  ]
+}

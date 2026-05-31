@@ -47,17 +47,18 @@ jobs:
           subject-path: |
             main.js
             manifest.json
-            styles.css
+            languages.schema.json
+            languages/*.json
 
       - name: Create release
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           tag="${GITHUB_REF#refs/tags/}"
-          assets="main.js manifest.json"
-          if [ -f styles.css ]; then
-            assets="$assets styles.css"
-          fi
+          assets="main.js manifest.json languages.schema.json"
+          for file in languages/*.json; do
+            assets="$assets $file"
+          done
           gh release create "$tag" \
             --title "$tag" \
             --verify-tag \

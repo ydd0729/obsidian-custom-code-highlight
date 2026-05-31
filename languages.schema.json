@@ -1,12 +1,25 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "title": "Extended Code Highlight languages",
-  "type": "object",
-  "additionalProperties": false,
-  "properties": {
-    "languages": {
-      "type": "array",
-      "items": {
+  "oneOf": [
+    {
+      "$ref": "#/$defs/language"
+    },
+    {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "languages": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/language"
+          }
+        }
+      }
+    }
+  ],
+  "$defs": {
+    "language": {
         "type": "object",
         "additionalProperties": false,
         "required": [
@@ -58,6 +71,5 @@
           }
         }
       }
-    }
   }
 }

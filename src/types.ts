@@ -64,6 +64,6 @@ export type PluginSettings = {
 };
 
 export const DEFAULT_SETTINGS: PluginSettings = {
-  languageConfigPath: "languages.json",
+  languageConfigPath: "languages",
   includeBuiltInLanguages: true
 };
