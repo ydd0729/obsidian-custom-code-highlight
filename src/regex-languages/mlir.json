@@ -1,0 +1,35 @@
+{
+  "id": "mlir",
+  "tokens": [
+    {
+      "name": "comment",
+      "pattern": "//.*",
+      "flags": "m"
+    },
+    {
+      "name": "string",
+      "pattern": "\"(?:\\\\.|[^\"\\\\])*\"",
+      "greedy": true
+    },
+    {
+      "name": "keyword",
+      "pattern": "\\b(?:affine_map|affine_set|attributes|dense|false|func|loc|module|none|return|strided|true|type|unit)\\b"
+    },
+    {
+      "name": "builtin",
+      "pattern": "\\b(?:bf16|f16|f32|f64|i1|i8|i16|i32|i64|index|memref|tensor|vector)\\b(?:<[^>]+>)?"
+    },
+    {
+      "name": "number",
+      "pattern": "[-+]?\\b(?:0x[\\da-fA-F]+|\\d+(?:\\.\\d+)?)\\b"
+    },
+    {
+      "name": "variable",
+      "pattern": "%[A-Za-z0-9_.$-]+|#[A-Za-z0-9_.$-]+|@[A-Za-z0-9_.$-]+|![A-Za-z0-9_.$-]+"
+    },
+    {
+      "name": "operator",
+      "pattern": "->|=>|[{}()[\\],:=<>*x?]|\\.\\.\\."
+    }
+  ]
+}

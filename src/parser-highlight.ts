@@ -1,4 +1,4 @@
-import { LRLanguage } from "@codemirror/language";
+import { Language } from "@codemirror/language";
 import { highlightTree, tagHighlighter, tags } from "@lezer/highlight";
 import type { TokenRange } from "./types";
 
@@ -26,7 +26,7 @@ const TOKEN_CLASS_NAMES = new Set([
   "operator"
 ]);
 
-export function findParserTokenRanges(text: string, language: LRLanguage): TokenRange[] {
+export function findParserTokenRanges(text: string, language: Language): TokenRange[] {
   const ranges: TokenRange[] = [];
   const tree = language.parser.parse(text);
 

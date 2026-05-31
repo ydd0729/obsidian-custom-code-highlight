@@ -1,0 +1,39 @@
+{
+  "id": "less",
+  "tokens": [
+    {
+      "name": "comment",
+      "pattern": "/\\*[\\s\\S]*?\\*/|//.*",
+      "greedy": true
+    },
+    {
+      "name": "string",
+      "pattern": "\"(?:\\\\.|[^\"\\\\])*\"|'(?:\\\\.|[^'\\\\])*'",
+      "greedy": true
+    },
+    {
+      "name": "keyword",
+      "pattern": "@(?:arguments|import|media|supports)\\b|\\b(?:and|from|not|only|to|when)\\b"
+    },
+    {
+      "name": "builtin",
+      "pattern": "\\b(?:calc|clamp|darken|fade|hsl|hsla|lighten|linear-gradient|mix|rgb|rgba|var)\\b"
+    },
+    {
+      "name": "number",
+      "pattern": "[-+]?\\b\\d+(?:\\.\\d+)?(?:%|[a-z]+)?\\b"
+    },
+    {
+      "name": "variable",
+      "pattern": "@[A-Za-z_][A-Za-z0-9_-]*"
+    },
+    {
+      "name": "property",
+      "pattern": "\\b-?[A-Za-z_][A-Za-z0-9_-]*(?=\\s*:)|[.#][A-Za-z_][A-Za-z0-9_-]*"
+    },
+    {
+      "name": "operator",
+      "pattern": "[-+*/%=!<>~|]+|[{}()[\\],;:]"
+    }
+  ]
+}

@@ -1,0 +1,44 @@
+{
+  "id": "hcl",
+  "aliases": [
+    "terraform",
+    "tf",
+    "tfvars"
+  ],
+  "tokens": [
+    {
+      "name": "comment",
+      "pattern": "#.*|//.*|/\\*[\\s\\S]*?\\*/",
+      "greedy": true
+    },
+    {
+      "name": "string",
+      "pattern": "<<-?\\w+[\\s\\S]*?\\n\\w+|\"(?:\\\\.|[^\"\\\\])*\"",
+      "greedy": true
+    },
+    {
+      "name": "keyword",
+      "pattern": "\\b(?:resource|data|provider|variable|output|module|locals|terraform|dynamic|for|in|if|null|true|false)\\b"
+    },
+    {
+      "name": "builtin",
+      "pattern": "\\b(?:count|each|for_each|depends_on|lifecycle|provisioner|connection|source|version|required_providers|required_version|backend)\\b"
+    },
+    {
+      "name": "number",
+      "pattern": "\\b\\d+(?:\\.\\d+)?\\b"
+    },
+    {
+      "name": "property",
+      "pattern": "\\b[A-Za-z_][A-Za-z0-9_-]*(?=\\s*=)"
+    },
+    {
+      "name": "variable",
+      "pattern": "\\b(?:var|local|module|data|path|terraform|each|self)\\.[A-Za-z0-9_.-]+"
+    },
+    {
+      "name": "operator",
+      "pattern": "=>|==|!=|<=|>=|&&|\\|\\||[-+*/%<>=!?:]+|[{}()[\\],.]"
+    }
+  ]
+}

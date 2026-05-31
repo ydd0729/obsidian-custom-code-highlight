@@ -1,0 +1,38 @@
+{
+  "id": "angular",
+  "aliases": [
+    "ng"
+  ],
+  "tokens": [
+    {
+      "name": "comment",
+      "pattern": "<!--[\\s\\S]*?-->|/\\*[\\s\\S]*?\\*/|//.*",
+      "greedy": true
+    },
+    {
+      "name": "string",
+      "pattern": "\"(?:\\\\.|[^\"\\\\])*\"|'(?:\\\\.|[^'\\\\])*'|`(?:\\\\.|[^`\\\\])*`",
+      "greedy": true
+    },
+    {
+      "name": "keyword",
+      "pattern": "\\b(?:as|async|else|false|for|if|let|null|of|then|track|true|undefined)\\b|@[A-Za-z][A-Za-z0-9_-]*|\\*(?:ngFor|ngIf|ngSwitchCase|ngSwitchDefault)"
+    },
+    {
+      "name": "builtin",
+      "pattern": "\\b(?:ngClass|ngFor|ngIf|ngModel|ngStyle|ngSwitch|ngTemplateOutlet)\\b"
+    },
+    {
+      "name": "function",
+      "pattern": "\\b[A-Za-z_$][A-Za-z0-9_$]*(?=\\s*\\()"
+    },
+    {
+      "name": "property",
+      "pattern": "\\[\\(?[A-Za-z0-9_.:-]+\\)?\\]|\\([A-Za-z0-9_.:-]+\\)|#[A-Za-z_][A-Za-z0-9_-]*|\\b[A-Za-z_:][-A-Za-z0-9_:]*(?=\\s*=)|</?\\s*[A-Za-z][A-Za-z0-9:.-]*"
+    },
+    {
+      "name": "operator",
+      "pattern": "\\{\\{|\\}\\}|=>|===|!==|==|!=|<=|>=|&&|\\|\\||\\?\\.|[-+*/%=!<>.&|^~?:]+|[{}()[\\],.;]"
+    }
+  ]
+}

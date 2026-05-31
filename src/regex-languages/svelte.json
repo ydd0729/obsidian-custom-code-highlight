@@ -1,0 +1,42 @@
+{
+  "id": "svelte",
+  "aliases": [
+    "sv"
+  ],
+  "tokens": [
+    {
+      "name": "comment",
+      "pattern": "<!--[\\s\\S]*?-->|/\\*[\\s\\S]*?\\*/|//.*",
+      "greedy": true
+    },
+    {
+      "name": "string",
+      "pattern": "\"(?:\\\\.|[^\"\\\\])*\"|'(?:\\\\.|[^'\\\\])*'|`(?:\\\\.|[^`\\\\])*`",
+      "greedy": true
+    },
+    {
+      "name": "keyword",
+      "pattern": "\\{[#/:@](?:if|else|each|await|then|catch|key|html|debug|const|render|snippet)\\b|\\b(?:as|await|break|case|catch|class|const|continue|default|else|export|extends|finally|for|from|function|get|if|import|in|let|new|return|set|switch|throw|try|typeof|var|while|yield)\\b"
+    },
+    {
+      "name": "builtin",
+      "pattern": "\\b(?:Array|Boolean|Date|Error|JSON|Map|Math|Number|Object|Promise|Set|String|console|document|false|null|onMount|true|undefined|window)\\b|\\$[A-Za-z_][A-Za-z0-9_$]*"
+    },
+    {
+      "name": "number",
+      "pattern": "\\b(?:0x[\\da-fA-F_]+|0b[01_]+|\\d[\\d_]*(?:\\.\\d[\\d_]*)?(?:[eE][-+]?\\d[\\d_]*)?)\\b"
+    },
+    {
+      "name": "function",
+      "pattern": "\\b[A-Za-z_$][A-Za-z0-9_$]*(?=\\s*\\()"
+    },
+    {
+      "name": "property",
+      "pattern": "\\b[A-Za-z_:][-A-Za-z0-9_:]*(?=\\s*=)|</?\\s*[A-Za-z][A-Za-z0-9:.-]*"
+    },
+    {
+      "name": "operator",
+      "pattern": "=>|===|!==|==|!=|<=|>=|&&|\\|\\||\\?\\.|[-+*/%=!<>.&|^~?:]+|[{}()[\\],.;]"
+    }
+  ]
+}

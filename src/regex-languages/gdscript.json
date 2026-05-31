@@ -1,0 +1,38 @@
+{
+  "id": "gdscript",
+  "aliases": [
+    "gd"
+  ],
+  "tokens": [
+    {
+      "name": "comment",
+      "pattern": "#.*",
+      "flags": "m"
+    },
+    {
+      "name": "string",
+      "pattern": "\"\"\"[\\s\\S]*?\"\"\"|'''[\\s\\S]*?'''|\"(?:\\\\.|[^\"\\\\])*\"|'(?:\\\\.|[^'\\\\])*'",
+      "greedy": true
+    },
+    {
+      "name": "keyword",
+      "pattern": "\\b(?:and|as|assert|await|break|breakpoint|class|class_name|const|continue|elif|else|enum|extends|for|func|if|in|is|match|not|or|pass|preload|return|self|signal|static|super|tool|var|while|yield)\\b"
+    },
+    {
+      "name": "builtin",
+      "pattern": "\\b(?:Array|Basis|Callable|Color|Dictionary|Node|Node2D|Object|PackedScene|Quaternion|Rect2|Resource|SceneTree|Signal|String|StringName|Transform2D|Transform3D|Vector2|Vector3|Vector4|bool|float|int|void)\\b|@[A-Za-z_][A-Za-z0-9_]*"
+    },
+    {
+      "name": "number",
+      "pattern": "\\b(?:0x[\\da-fA-F_]+|0b[01_]+|\\d[\\d_]*(?:\\.\\d[\\d_]*)?)\\b"
+    },
+    {
+      "name": "function",
+      "pattern": "\\b[A-Za-z_][A-Za-z0-9_]*(?=\\s*\\()"
+    },
+    {
+      "name": "operator",
+      "pattern": ":=|==|!=|<=|>=|&&|\\|\\||[-+*/%=!<>.&|^~?:]+|[{}()[\\],.]"
+    }
+  ]
+}

@@ -2,37 +2,54 @@
 
 Additional and configurable syntax highlighting for Obsidian code blocks.
 
-The plugin highlights code in both Reading view and editor/Live Preview mode. It ships with built-in language definitions for missing or inconsistent code block languages, and can be extended with regex-based token rules in `languages.json`.
+The plugin highlights code in both Reading view and editor/Live Preview mode. It ships with PrismJS grammars, CodeMirror parsers, and regex fallback definitions, and can be extended with regex-based token rules in `languages.json`.
 
 ## Features
 
-- Built-in highlighting for WebAssembly text, Zig, Nix, HCL/Terraform, Kusto/KQL, AutoHotkey, GDScript, MLIR, Lean, Angular, Vue, Liquid, Less, Sass/SCSS, and Svelte.
+- Reading-view highlighting for every PrismJS supported language id and alias.
+- Editor/Live Preview parser highlighting for bundled CodeMirror-supported languages.
+- CodeMirror parser highlighting in Reading view when CodeMirror supports a language but PrismJS does not.
+- PrismJS token-stream highlighting in editor views when PrismJS supports a language but no CodeMirror parser is available.
+- Regex fallback highlighting from JSON definitions when neither the relevant parser nor PrismJS tokenization is available.
 - User-defined language highlighting through `languages.json`.
-- Reading-view highlighting through Prism-compatible grammar registration.
-- Editor-mode highlighting through CodeMirror 6 decorations.
+- Native Obsidian Prism and CodeMirror token classes for theme-compatible colors.
 - Live Preview code blocks remain editable.
 
 ## Supported Languages
 
+Reading view supports every language id and alias listed by PrismJS at <https://prismjs.com/#supported-languages>. If a bundled CodeMirror parser exists for a non-Prism language, Reading view translates the CodeMirror parser ranges into Prism-style `.token.*` spans.
+
+Editor and Live Preview include CodeMirror parser support for:
+
 | Language | Fence names |
 | --- | --- |
-| WebAssembly text format | `wasm`, `wat`, `wast`, `webassembly` |
-| Zig | `zig` |
-| Nix | `nix`, `nixos` |
-| HCL / Terraform | `hcl`, `terraform`, `tf`, `tfvars` |
-| Kusto Query Language | `kusto`, `kql` |
-| AutoHotkey | `autohotkey`, `ahk` |
-| GDScript | `gdscript`, `gd` |
-| MLIR | `mlir` |
-| Lean | `lean`, `lean4` |
 | Angular templates | `angular`, `ng` |
-| Vue single-file components | `vue` |
-| Liquid templates | `liquid`, `shopify` |
+| CSS | `css` |
+| C++ | `cpp`, `c++`, `cxx`, `cc`, `hpp`, `h++` |
+| Go | `go` |
+| HTML | `html`, `htm` |
+| Java | `java` |
+| JavaScript | `javascript`, `js`, `mjs`, `cjs` |
+| TypeScript | `typescript`, `ts` |
+| JSX | `jsx` |
+| TSX | `tsx` |
+| Jinja | `jinja`, `jinja2`, `django` |
+| JSON | `json`, `webmanifest` |
 | Less | `less` |
+| Liquid templates | `liquid`, `shopify` |
+| Markdown | `markdown`, `md` |
+| PHP | `php` |
+| Python | `python`, `py` |
+| Rust | `rust`, `rs` |
 | Sass / SCSS | `sass`, `scss` |
+| SQL | `sql` |
+| Vue single-file components | `vue` |
+| WebAssembly text format | `wasm`, `wat`, `wast`, `webassembly` |
+| XML | `xml`, `xsd` |
+| YAML | `yaml`, `yml` |
 | Svelte | `svelte`, `sv` |
 
-Obsidian uses different highlighting paths across Reading view, Source mode, and Live Preview. This plugin keeps the supported language set consistent across those views by registering Prism-compatible rules and applying matching editor decorations.
+Additional built-in JSON regex fallbacks cover WebAssembly text, Zig, Nix, HCL/Terraform, Kusto/KQL, GLSL, AutoHotkey, GDScript, MLIR, Lean, Angular, Vue, Liquid, Less, Sass/SCSS, and Svelte. Prism-only languages use PrismJS token streams translated to Obsidian/CodeMirror editor classes when no CodeMirror parser is available.
 
 ## Example
 
@@ -96,13 +113,12 @@ After editing `languages.json`, run `Reload extended highlight languages`, use t
 
 ## Implementation
 
-Obsidian uses PrismJS for Reading view code block highlighting, while Source mode and Live Preview use CodeMirror. Extended Code Highlight bridges those views with built-in language definitions and user-provided regex token definitions.
+Obsidian uses PrismJS for Reading view code block highlighting, while Source mode and Live Preview use CodeMirror. Extended Code Highlight keeps those paths separate:
 
-The current implementation is parser-first for built-in languages where parser support is available:
-
-- Reading view prefers the current PrismJS grammar for a supported fence name, and falls back to the plugin's regex grammar when Prism does not provide that language.
-- Editor and Live Preview prefer CodeMirror/Lezer parsers for built-in languages with bundled CodeMirror language support.
-- If CodeMirror support is unavailable for a built-in language, editor highlighting falls back to the regex token rules.
+- Reading view uses the plugin's bundled PrismJS grammar for Prism-supported fence names, then translates CodeMirror parser ranges into Prism-style token spans when only CodeMirror support is available.
+- Editor and Live Preview use bundled CodeMirror/Lezer parsers for CodeMirror-supported fence names.
+- If CodeMirror support is unavailable for a built-in language, editor highlighting uses PrismJS token streams translated to Obsidian/CodeMirror token classes.
+- JSON regex token rules are used after the relevant PrismJS and CodeMirror paths are unavailable, and for user-defined languages.
 - User-defined languages in `languages.json` always use regex token rules in both Reading view and editor/Live Preview mode.
 
 ## Installation
@@ -131,13 +147,13 @@ Reading view tokens use Prism-style classes:
 <span class="token keyword">...</span>
 ```
 
-Editor tokens use CodeMirror decoration classes:
+Editor tokens use plugin decoration classes plus Obsidian/CodeMirror token classes:
 
 ```text
-extended-code-highlight-editor-keyword
+extended-code-highlight-editor-keyword cm-hmd-codeblock cm-keyword
 ```
 
-Customize colors in `styles.css`.
+This lets installed Obsidian themes style plugin-highlighted tokens through their existing `.token.*` and `.cm-*` rules.
 
 ## Development
 

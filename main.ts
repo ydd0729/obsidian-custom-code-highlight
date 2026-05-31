@@ -3,6 +3,7 @@ import { Decoration, DecorationSet, EditorView, ViewPlugin, ViewUpdate } from "@
 import { MarkdownPostProcessorContext, Notice, Plugin } from "obsidian";
 import { BUILT_IN_LANGUAGES } from "./src/languages";
 import { findParserTokenRanges } from "./src/parser-highlight";
+import { bundledPrism } from "./src/prism";
 import { ExtendedCodeHighlightSettingTab } from "./src/settings-tab";
 import {
   DEFAULT_SETTINGS
@@ -12,7 +13,6 @@ import type {
   LanguagesFile,
   PluginSettings,
   PrismGrammar,
-  PrismLike,
   RuntimeLanguage,
   TokenMatcher,
   TokenRange
@@ -21,6 +21,53 @@ import type {
 const LANGUAGE_ID_PATTERN = /^[A-Za-z0-9_-]+$/;
 const TOKEN_NAME_PATTERN = /^[A-Za-z0-9_-]+$/;
 const VALID_REGEXP_FLAGS = /^[dgimsuvy]*$/;
+const OBSIDIAN_EDITOR_TOKEN_CLASSES: Record<string, string> = {
+  comment: "cm-comment",
+  string: "cm-string",
+  keyword: "cm-keyword",
+  builtin: "cm-atom",
+  number: "cm-number",
+  variable: "cm-variable-2",
+  function: "cm-def",
+  property: "cm-property",
+  operator: "cm-operator"
+};
+const PRISM_TO_EDITOR_TOKEN_NAMES: Record<string, string> = {
+  attrName: "property",
+  "attr-name": "property",
+  "attr-value": "string",
+  boolean: "keyword",
+  builtin: "builtin",
+  cdata: "comment",
+  char: "string",
+  "class-name": "variable",
+  comment: "comment",
+  constant: "builtin",
+  doctype: "comment",
+  function: "function",
+  keyword: "keyword",
+  namespace: "property",
+  number: "number",
+  operator: "operator",
+  parameter: "variable",
+  prolog: "comment",
+  property: "property",
+  punctuation: "operator",
+  regex: "string",
+  selector: "property",
+  string: "string",
+  symbol: "builtin",
+  tag: "property",
+  variable: "variable"
+};
+
+type PrismTokenStream = Array<string | PrismTokenLike>;
+type PrismTokenContent = string | PrismTokenLike | PrismTokenStream;
+
+type PrismTokenLike = {
+  type: string;
+  content: PrismTokenContent;
+};
 
 export default class ExtendedCodeHighlightPlugin extends Plugin {
   settings: PluginSettings = DEFAULT_SETTINGS;
@@ -43,6 +90,9 @@ export default class ExtendedCodeHighlightPlugin extends Plugin {
 
     this.registerMarkdownPostProcessor((element, context) => {
       this.highlightRenderedCodeBlocks(element, context);
+      window.setTimeout(() => {
+        this.highlightRenderedCodeBlocks(element, context);
+      }, 50);
     });
 
     await this.ensureExampleConfig();
@@ -73,29 +123,29 @@ export default class ExtendedCodeHighlightPlugin extends Plugin {
   }
 
   async registerLanguages(): Promise<void> {
-    const prism = this.getPrism();
-
     this.unregisterLanguages();
 
     const languages = await this.loadLanguageConfigs();
     for (const language of languages) {
-      const grammar = this.createGrammar(language);
       const ids = [language.id, ...(language.aliases ?? [])];
+      const matchers = language.tokens ? this.createTokenMatchers(language) : undefined;
 
       this.runtimeLanguages.push({
         ids,
         normalizedIds: new Set(ids.map((id) => id.toLowerCase())),
         idPattern: this.createLanguageIdPattern(ids),
-        matchers: this.createTokenMatchers(language),
+        matchers,
         parserLanguage: language.isCustom ? undefined : language.parserLanguage,
         isCustom: language.isCustom ?? false,
         preferPrism: !language.isCustom && language.preferPrism === true
       });
 
-      const shouldUseRegexPrismGrammar = !language.preferPrism || !this.hasNativePrismGrammar(prism, ids);
-      for (const id of ids) {
-        if (prism && shouldUseRegexPrismGrammar) {
-          prism.languages[id] = grammar;
+      const shouldRegisterRegexPrismGrammar = language.tokens
+        && (!language.preferPrism || !this.hasNativeBundledPrismGrammar(ids));
+      if (shouldRegisterRegexPrismGrammar) {
+        const grammar = this.createGrammar(language);
+        for (const id of ids) {
+          bundledPrism.languages[id] = grammar;
           this.registeredLanguageIds.add(id);
         }
       }
@@ -105,12 +155,8 @@ export default class ExtendedCodeHighlightPlugin extends Plugin {
   }
 
   private unregisterLanguages(): void {
-    const prism = this.getPrism();
-
-    if (prism) {
-      for (const id of this.registeredLanguageIds) {
-        delete prism.languages[id];
-      }
+    for (const id of this.registeredLanguageIds) {
+      delete bundledPrism.languages[id];
     }
 
     this.registeredLanguageIds.clear();
@@ -172,7 +218,7 @@ export default class ExtendedCodeHighlightPlugin extends Plugin {
     if (!Array.isArray(language.tokens) || language.tokens.length === 0) {
       throw new Error(`language ${language.id} must define at least one token`);
     }
-    for (const token of language.tokens) {
+    for (const token of language.tokens ?? []) {
       if (!TOKEN_NAME_PATTERN.test(token.name)) {
         throw new Error(`invalid token name in ${language.id}: ${token.name}`);
       }
@@ -186,7 +232,7 @@ export default class ExtendedCodeHighlightPlugin extends Plugin {
   private createGrammar(language: LanguageConfig): PrismGrammar {
     const grammar: PrismGrammar = {};
 
-    for (const token of language.tokens) {
+    for (const token of language.tokens ?? []) {
       const flags = token.flags ?? "";
       const pattern = new RegExp(token.pattern, flags);
       grammar[token.name] = token.lookbehind || token.greedy
@@ -202,7 +248,7 @@ export default class ExtendedCodeHighlightPlugin extends Plugin {
   }
 
   private createTokenMatchers(language: LanguageConfig): TokenMatcher[] {
-    return language.tokens.map((token) => ({
+    return (language.tokens ?? []).map((token) => ({
       name: token.name,
       pattern: new RegExp(token.pattern, this.withGlobalFlag(token.flags ?? ""))
     }));
@@ -305,7 +351,11 @@ export default class ExtendedCodeHighlightPlugin extends Plugin {
 
   private highlightCodeElement(element: Element, language: RuntimeLanguage): void {
     if (element.hasClass("extended-code-highlight")) {
-      return;
+      if (element.querySelector(".token")) {
+        return;
+      }
+      element.removeClass("extended-code-highlight");
+      element.removeAttribute("data-extended-code-highlighted");
     }
 
     const text = element.textContent ?? "";
@@ -313,7 +363,15 @@ export default class ExtendedCodeHighlightPlugin extends Plugin {
       return;
     }
 
-    if (language.preferPrism && this.highlightWithNativePrism(element, language)) {
+    if (language.preferPrism && this.highlightWithBundledPrism(element, language)) {
+      return;
+    }
+
+    if (language.parserLanguage && this.highlightWithParser(element, text, language)) {
+      return;
+    }
+
+    if (!language.matchers) {
       return;
     }
 
@@ -324,7 +382,15 @@ export default class ExtendedCodeHighlightPlugin extends Plugin {
   }
 
   private renderHighlightedText(element: Element, text: string, language: RuntimeLanguage): void {
+    if (!language.matchers) {
+      return;
+    }
+
     const ranges = this.findTokenRanges(text, language.matchers);
+    this.renderTokenRanges(element, text, ranges);
+  }
+
+  private renderTokenRanges(element: Element, text: string, ranges: TokenRange[]): void {
     let offset = 0;
 
     for (const range of ranges) {
@@ -494,7 +560,7 @@ export default class ExtendedCodeHighlightPlugin extends Plugin {
             decorationStart,
             decorationEnd,
             Decoration.mark({
-              class: `extended-code-highlight-editor-token extended-code-highlight-editor-${range.name}`
+              class: this.getEditorTokenClass(range.name)
             })
           );
         }
@@ -558,24 +624,39 @@ export default class ExtendedCodeHighlightPlugin extends Plugin {
     return `${this.manifest.dir}/${configuredPath.replace(/\\/g, "/")}`;
   }
 
-  private getPrism(): PrismLike | null {
-    const prism = (window as Window & { Prism?: PrismLike }).Prism;
-    return prism ?? null;
+  private hasNativeBundledPrismGrammar(ids: string[]): boolean {
+    return ids.some((id) => bundledPrism.languages[id] && !this.registeredLanguageIds.has(id));
   }
 
-  private hasNativePrismGrammar(prism: PrismLike | null, ids: string[]): boolean {
-    return Boolean(prism && ids.some((id) => prism.languages[id]));
-  }
-
-  private highlightWithNativePrism(element: Element, language: RuntimeLanguage): boolean {
-    const prism = this.getPrism();
-    if (!prism || !prism.highlightElement || !this.hasNativePrismGrammar(prism, language.ids)) {
+  private highlightWithBundledPrism(element: Element, language: RuntimeLanguage): boolean {
+    const prismLanguageId = language.ids.find((id) => bundledPrism.languages[id] && !this.registeredLanguageIds.has(id));
+    if (!prismLanguageId) {
       return false;
     }
 
+    const text = element.textContent ?? "";
+    const grammar = bundledPrism.languages[prismLanguageId];
     element.addClass("extended-code-highlight");
     element.setAttr("data-extended-code-highlighted", "true");
-    prism.highlightElement(element);
+    element.empty();
+    element.innerHTML = bundledPrism.highlight(text, grammar, prismLanguageId);
+    return true;
+  }
+
+  private highlightWithParser(element: Element, text: string, language: RuntimeLanguage): boolean {
+    if (!language.parserLanguage) {
+      return false;
+    }
+
+    const ranges = findParserTokenRanges(text, language.parserLanguage);
+    if (ranges.length === 0) {
+      return false;
+    }
+
+    element.empty();
+    element.addClass("extended-code-highlight");
+    element.setAttr("data-extended-code-highlighted", "true");
+    this.renderTokenRanges(element, text, ranges);
     return true;
   }
 
@@ -583,6 +664,63 @@ export default class ExtendedCodeHighlightPlugin extends Plugin {
     if (language.parserLanguage) {
       return findParserTokenRanges(text, language.parserLanguage);
     }
+    if (language.preferPrism) {
+      const ranges = this.findPrismTokenRanges(text, language);
+      if (ranges.length > 0) {
+        return ranges;
+      }
+    }
+    if (!language.matchers) {
+      return [];
+    }
     return this.findTokenRanges(text, language.matchers);
+  }
+
+  private findPrismTokenRanges(text: string, language: RuntimeLanguage): TokenRange[] {
+    const prismLanguageId = language.ids.find((id) => bundledPrism.languages[id]);
+    if (!prismLanguageId) {
+      return [];
+    }
+
+    const grammar = bundledPrism.languages[prismLanguageId];
+    const stream = bundledPrism.tokenize(text, grammar) as PrismTokenStream;
+    const ranges: TokenRange[] = [];
+    this.collectPrismTokenRanges(stream, 0, ranges);
+    return ranges.sort((left, right) => left.start - right.start || right.end - left.end);
+  }
+
+  private collectPrismTokenRanges(content: PrismTokenContent, offset: number, ranges: TokenRange[]): number {
+    if (typeof content === "string") {
+      return offset + content.length;
+    }
+
+    if (Array.isArray(content)) {
+      let currentOffset = offset;
+      for (const item of content) {
+        currentOffset = this.collectPrismTokenRanges(item, currentOffset, ranges);
+      }
+      return currentOffset;
+    }
+
+    const start = offset;
+    const nestedCount = ranges.length;
+    const end = this.collectPrismTokenRanges(content.content, offset, ranges);
+    const editorTokenName = PRISM_TO_EDITOR_TOKEN_NAMES[content.type];
+
+    if (editorTokenName && ranges.length === nestedCount && end > start) {
+      ranges.push({ start, end, name: editorTokenName });
+    }
+
+    return end;
+  }
+
+  private getEditorTokenClass(tokenName: string): string {
+    const nativeClass = OBSIDIAN_EDITOR_TOKEN_CLASSES[tokenName];
+    return [
+      "extended-code-highlight-editor-token",
+      `extended-code-highlight-editor-${tokenName}`,
+      "cm-hmd-codeblock",
+      nativeClass
+    ].filter(Boolean).join(" ");
   }
 }

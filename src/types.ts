@@ -1,4 +1,4 @@
-import { LRLanguage } from "@codemirror/language";
+import { Language } from "@codemirror/language";
 
 export type PrismPattern = RegExp | {
   pattern: RegExp;
@@ -27,8 +27,8 @@ export type TokenConfig = {
 export type LanguageConfig = {
   id: string;
   aliases?: string[];
-  tokens: TokenConfig[];
-  parserLanguage?: LRLanguage;
+  tokens?: TokenConfig[];
+  parserLanguage?: Language;
   preferPrism?: boolean;
   isCustom?: boolean;
 };
@@ -46,8 +46,8 @@ export type RuntimeLanguage = {
   ids: string[];
   normalizedIds: Set<string>;
   idPattern: RegExp;
-  matchers: TokenMatcher[];
-  parserLanguage?: LRLanguage;
+  matchers?: TokenMatcher[];
+  parserLanguage?: Language;
   isCustom: boolean;
   preferPrism: boolean;
 };

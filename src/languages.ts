@@ -1,610 +1,458 @@
 import { angularLanguage } from "@codemirror/lang-angular";
+import { cppLanguage } from "@codemirror/lang-cpp";
+import { cssLanguage } from "@codemirror/lang-css";
+import { goLanguage } from "@codemirror/lang-go";
+import { htmlLanguage } from "@codemirror/lang-html";
+import { javaLanguage } from "@codemirror/lang-java";
+import { javascriptLanguage, jsxLanguage, tsxLanguage, typescriptLanguage } from "@codemirror/lang-javascript";
+import { jinjaLanguage } from "@codemirror/lang-jinja";
+import { jsonLanguage } from "@codemirror/lang-json";
 import { lessLanguage } from "@codemirror/lang-less";
 import { liquidLanguage } from "@codemirror/lang-liquid";
+import { markdownLanguage } from "@codemirror/lang-markdown";
+import { phpLanguage } from "@codemirror/lang-php";
+import { pythonLanguage } from "@codemirror/lang-python";
+import { rustLanguage } from "@codemirror/lang-rust";
 import { sassLanguage } from "@codemirror/lang-sass";
+import { sql } from "@codemirror/lang-sql";
 import { vueLanguage } from "@codemirror/lang-vue";
 import { wastLanguage } from "@codemirror/lang-wast";
+import { xmlLanguage } from "@codemirror/lang-xml";
+import { yamlLanguage } from "@codemirror/lang-yaml";
 import { svelteLanguage } from "@replit/codemirror-lang-svelte";
+import WasmRegex from "./regex-languages/wasm.json";
+import ZigRegex from "./regex-languages/zig.json";
+import NixRegex from "./regex-languages/nix.json";
+import HclRegex from "./regex-languages/hcl.json";
+import KustoRegex from "./regex-languages/kusto.json";
+import GlslRegex from "./regex-languages/glsl.json";
+import AutohotkeyRegex from "./regex-languages/autohotkey.json";
+import GdscriptRegex from "./regex-languages/gdscript.json";
+import MlirRegex from "./regex-languages/mlir.json";
+import LeanRegex from "./regex-languages/lean.json";
+import AngularRegex from "./regex-languages/angular.json";
+import VueRegex from "./regex-languages/vue.json";
+import LiquidRegex from "./regex-languages/liquid.json";
+import LessRegex from "./regex-languages/less.json";
+import SassRegex from "./regex-languages/sass.json";
+import SvelteRegex from "./regex-languages/svelte.json";
+import GenericRegex from "./regex-languages/generic.json";
 import type { LanguageConfig } from "./types";
-const WASM_LANGUAGE: LanguageConfig = {
-  id: "wasm",
-  aliases: ["wat", "wast", "webassembly"],
-  parserLanguage: wastLanguage,
-  preferPrism: true,
-  tokens: [
-    {
-      name: "comment",
-      pattern: "\\(;[\\s\\S]*?;\\)|;;.*",
-      greedy: true
-    },
-    {
-      name: "string",
-      pattern: "\"(?:\\\\[\\s\\S]|[^\"\\\\])*\"",
-      greedy: true
-    },
-    {
-      name: "keyword",
-      pattern: "\\b(?:module|func|param|result|local|global|memory|table|elem|data|type|import|export|start|if|then|else|end|block|loop|br|br_if|br_table|return|call|call_indirect|local\\.get|local\\.set|local\\.tee|global\\.get|global\\.set|memory\\.(?:size|grow|copy|fill|init)|table\\.(?:get|set|size|grow|fill|copy|init)|drop|select|nop|unreachable)\\b"
-    },
-    {
-      name: "builtin",
-      pattern: "\\b(?:i32|i64|f32|f64|v128|funcref|externref)\\b(?:\\.[A-Za-z0-9_.$-]+)?"
-    },
-    {
-      name: "number",
-      pattern: "[-+]?\\b(?:0x[\\da-fA-F](?:[\\da-fA-F_]*\\.?[\\da-fA-F_]*)?|\\d(?:[\\d_]*\\.?[\\d_]*))(?:[eEpP][-+]?\\d[\\d_]*)?\\b|\\b(?:inf|nan(?::0x[\\da-fA-F_]+)?)\\b"
-    },
-    {
-      name: "variable",
-      pattern: "\\$[\\w!#$%&'*+./:<=>?@\\\\^`|~-]+"
-    },
-    {
-      name: "operator",
-      pattern: "[()]"
-    }
-  ]
+
+type PrismSupportedLanguage = {
+  id: string;
+  aliases?: string[];
 };
 
-const ZIG_LANGUAGE: LanguageConfig = {
-  id: "zig",
-  tokens: [
-    {
-      name: "comment",
-      pattern: "//.*",
-      flags: "m"
-    },
-    {
-      name: "string",
-      pattern: "\"(?:\\\\.|[^\"\\\\])*\"|'(?:\\\\.|[^'\\\\])*'",
-      greedy: true
-    },
-    {
-      name: "keyword",
-      pattern: "\\b(?:addrspace|align|allowzero|and|anyframe|anytype|asm|async|await|break|callconv|catch|comptime|const|continue|defer|else|enum|errdefer|error|export|extern|fn|for|if|inline|linksection|noalias|noinline|nosuspend|null|opaque|or|orelse|packed|pub|resume|return|struct|suspend|switch|test|threadlocal|try|union|unreachable|usingnamespace|var|volatile|while)\\b"
-    },
-    {
-      name: "builtin",
-      pattern: "@[A-Za-z_][A-Za-z0-9_]*|\\b(?:bool|void|noreturn|type|anyerror|comptime_int|comptime_float|isize|usize|i\\d+|u\\d+|f16|f32|f64|f80|f128)\\b"
-    },
-    {
-      name: "number",
-      pattern: "\\b(?:0x[\\da-fA-F_]+|0b[01_]+|\\d[\\d_]*(?:\\.\\d[\\d_]*)?(?:[eE][-+]?\\d[\\d_]*)?)\\b"
-    },
-    {
-      name: "function",
-      pattern: "\\b[A-Za-z_][A-Za-z0-9_]*(?=\\s*\\()"
-    },
-    {
-      name: "operator",
-      pattern: "[-+*/%=!<>|&~^?:]+|\\.\\.?|[{}()[\\],;]"
-    }
-  ]
-};
+const PRISM_SUPPORTED_LANGUAGES: PrismSupportedLanguage[] = [
+  { id: "markup", aliases: ["html", "xml", "svg", "mathml", "ssml", "atom", "rss"] },
+  { id: "css" },
+  { id: "clike" },
+  { id: "javascript", aliases: ["js"] },
+  { id: "abap" },
+  { id: "abnf" },
+  { id: "actionscript" },
+  { id: "ada" },
+  { id: "agda" },
+  { id: "al" },
+  { id: "antlr4", aliases: ["g4"] },
+  { id: "apacheconf" },
+  { id: "apex" },
+  { id: "apl" },
+  { id: "applescript" },
+  { id: "aql" },
+  { id: "arduino", aliases: ["ino"] },
+  { id: "arff" },
+  { id: "armasm", aliases: ["arm-asm"] },
+  { id: "arturo", aliases: ["art"] },
+  { id: "asciidoc", aliases: ["adoc"] },
+  { id: "aspnet" },
+  { id: "asm6502" },
+  { id: "asmatmel" },
+  { id: "autohotkey" },
+  { id: "autoit" },
+  { id: "avisynth", aliases: ["avs"] },
+  { id: "avro-idl", aliases: ["avdl"] },
+  { id: "awk", aliases: ["gawk"] },
+  { id: "bash", aliases: ["sh", "shell"] },
+  { id: "basic" },
+  { id: "batch" },
+  { id: "bbcode", aliases: ["shortcode"] },
+  { id: "bbj" },
+  { id: "bicep" },
+  { id: "birb" },
+  { id: "bison" },
+  { id: "bnf", aliases: ["rbnf"] },
+  { id: "bqn" },
+  { id: "brainfuck" },
+  { id: "brightscript" },
+  { id: "bro" },
+  { id: "bsl", aliases: ["oscript"] },
+  { id: "c" },
+  { id: "csharp", aliases: ["cs", "dotnet"] },
+  { id: "cpp" },
+  { id: "cfscript", aliases: ["cfc"] },
+  { id: "chaiscript" },
+  { id: "cil" },
+  { id: "cilkc", aliases: ["cilk-c"] },
+  { id: "cilkcpp", aliases: ["cilk-cpp", "cilk"] },
+  { id: "clojure" },
+  { id: "cmake" },
+  { id: "cobol" },
+  { id: "coffeescript", aliases: ["coffee"] },
+  { id: "concurnas", aliases: ["conc"] },
+  { id: "csp" },
+  { id: "cooklang" },
+  { id: "coq" },
+  { id: "crystal" },
+  { id: "css-extras" },
+  { id: "csv" },
+  { id: "cue" },
+  { id: "cypher" },
+  { id: "d" },
+  { id: "dart" },
+  { id: "dataweave" },
+  { id: "dax" },
+  { id: "dhall" },
+  { id: "diff" },
+  { id: "django", aliases: ["jinja2"] },
+  { id: "dns-zone-file", aliases: ["dns-zone"] },
+  { id: "docker", aliases: ["dockerfile"] },
+  { id: "dot", aliases: ["gv"] },
+  { id: "ebnf" },
+  { id: "editorconfig" },
+  { id: "eiffel" },
+  { id: "ejs", aliases: ["eta"] },
+  { id: "elixir" },
+  { id: "elm" },
+  { id: "etlua" },
+  { id: "erb" },
+  { id: "erlang" },
+  { id: "excel-formula", aliases: ["xlsx", "xls"] },
+  { id: "fsharp" },
+  { id: "factor" },
+  { id: "false" },
+  { id: "firestore-security-rules" },
+  { id: "flow" },
+  { id: "fortran" },
+  { id: "ftl" },
+  { id: "gml", aliases: ["gamemakerlanguage"] },
+  { id: "gap" },
+  { id: "gcode" },
+  { id: "gdscript" },
+  { id: "gedcom" },
+  { id: "gettext", aliases: ["po"] },
+  { id: "gherkin" },
+  { id: "git" },
+  { id: "glsl" },
+  { id: "gn", aliases: ["gni"] },
+  { id: "linker-script", aliases: ["ld"] },
+  { id: "go" },
+  { id: "go-module", aliases: ["go-mod"] },
+  { id: "gradle" },
+  { id: "graphql" },
+  { id: "groovy" },
+  { id: "haml" },
+  { id: "handlebars", aliases: ["hbs", "mustache"] },
+  { id: "haskell", aliases: ["hs"] },
+  { id: "haxe" },
+  { id: "hcl" },
+  { id: "hlsl" },
+  { id: "hoon" },
+  { id: "http" },
+  { id: "hpkp" },
+  { id: "hsts" },
+  { id: "ichigojam" },
+  { id: "icon" },
+  { id: "icu-message-format" },
+  { id: "idris", aliases: ["idr"] },
+  { id: "ignore", aliases: ["gitignore", "hgignore", "npmignore"] },
+  { id: "inform7" },
+  { id: "ini" },
+  { id: "io" },
+  { id: "j" },
+  { id: "java" },
+  { id: "javadoc" },
+  { id: "javadoclike" },
+  { id: "javastacktrace" },
+  { id: "jexl" },
+  { id: "jolie" },
+  { id: "jq" },
+  { id: "jsdoc" },
+  { id: "js-extras" },
+  { id: "json", aliases: ["webmanifest"] },
+  { id: "json5" },
+  { id: "jsonp" },
+  { id: "jsstacktrace" },
+  { id: "js-templates" },
+  { id: "julia" },
+  { id: "keepalived" },
+  { id: "keyman" },
+  { id: "kotlin", aliases: ["kt", "kts"] },
+  { id: "kumir", aliases: ["kum"] },
+  { id: "kusto" },
+  { id: "latex", aliases: ["tex", "context"] },
+  { id: "latte" },
+  { id: "less" },
+  { id: "lilypond", aliases: ["ly"] },
+  { id: "liquid" },
+  { id: "lisp", aliases: ["emacs", "elisp", "emacs-lisp"] },
+  { id: "livescript" },
+  { id: "llvm" },
+  { id: "log" },
+  { id: "lolcode" },
+  { id: "lua" },
+  { id: "magma" },
+  { id: "makefile" },
+  { id: "markdown", aliases: ["md"] },
+  { id: "markup-templating" },
+  { id: "mata" },
+  { id: "matlab" },
+  { id: "maxscript" },
+  { id: "mel" },
+  { id: "mermaid" },
+  { id: "metafont" },
+  { id: "mizar" },
+  { id: "mongodb" },
+  { id: "monkey" },
+  { id: "moonscript", aliases: ["moon"] },
+  { id: "n1ql" },
+  { id: "n4js", aliases: ["n4jsd"] },
+  { id: "nand2tetris-hdl" },
+  { id: "naniscript", aliases: ["nani"] },
+  { id: "nasm" },
+  { id: "neon" },
+  { id: "nevod" },
+  { id: "nginx" },
+  { id: "nim" },
+  { id: "nix" },
+  { id: "nsis" },
+  { id: "objectivec", aliases: ["objc"] },
+  { id: "ocaml" },
+  { id: "odin" },
+  { id: "opencl" },
+  { id: "openqasm", aliases: ["qasm"] },
+  { id: "oz" },
+  { id: "parigp" },
+  { id: "parser" },
+  { id: "pascal", aliases: ["objectpascal"] },
+  { id: "pascaligo" },
+  { id: "psl" },
+  { id: "pcaxis", aliases: ["px"] },
+  { id: "peoplecode", aliases: ["pcode"] },
+  { id: "perl" },
+  { id: "php" },
+  { id: "phpdoc" },
+  { id: "php-extras" },
+  { id: "plant-uml", aliases: ["plantuml"] },
+  { id: "plsql" },
+  { id: "powerquery", aliases: ["pq", "mscript"] },
+  { id: "powershell" },
+  { id: "processing" },
+  { id: "prolog" },
+  { id: "promql" },
+  { id: "properties" },
+  { id: "protobuf" },
+  { id: "pug" },
+  { id: "puppet" },
+  { id: "pure" },
+  { id: "purebasic", aliases: ["pbfasm"] },
+  { id: "purescript", aliases: ["purs"] },
+  { id: "python", aliases: ["py"] },
+  { id: "qsharp", aliases: ["qs"] },
+  { id: "q" },
+  { id: "qml" },
+  { id: "qore" },
+  { id: "r" },
+  { id: "racket", aliases: ["rkt"] },
+  { id: "cshtml", aliases: ["razor"] },
+  { id: "jsx" },
+  { id: "tsx" },
+  { id: "reason" },
+  { id: "regex" },
+  { id: "rego" },
+  { id: "renpy", aliases: ["rpy"] },
+  { id: "rescript", aliases: ["res"] },
+  { id: "rest" },
+  { id: "rip" },
+  { id: "roboconf" },
+  { id: "robotframework", aliases: ["robot"] },
+  { id: "ruby", aliases: ["rb"] },
+  { id: "rust" },
+  { id: "sas" },
+  { id: "sass" },
+  { id: "scss" },
+  { id: "scala" },
+  { id: "scheme" },
+  { id: "shell-session", aliases: ["sh-session", "shellsession"] },
+  { id: "smali" },
+  { id: "smalltalk" },
+  { id: "smarty" },
+  { id: "sml", aliases: ["smlnj"] },
+  { id: "solidity", aliases: ["sol"] },
+  { id: "solution-file", aliases: ["sln"] },
+  { id: "soy" },
+  { id: "sparql", aliases: ["rq"] },
+  { id: "splunk-spl" },
+  { id: "sqf" },
+  { id: "sql" },
+  { id: "squirrel" },
+  { id: "stan" },
+  { id: "stata" },
+  { id: "iecst" },
+  { id: "stylus" },
+  { id: "supercollider", aliases: ["sclang"] },
+  { id: "swift" },
+  { id: "systemd" },
+  { id: "t4-templating" },
+  { id: "t4-cs", aliases: ["t4"] },
+  { id: "t4-vb" },
+  { id: "tap" },
+  { id: "tcl" },
+  { id: "tt2" },
+  { id: "textile" },
+  { id: "toml" },
+  { id: "tremor", aliases: ["trickle", "troy"] },
+  { id: "turtle", aliases: ["trig"] },
+  { id: "twig" },
+  { id: "typescript", aliases: ["ts"] },
+  { id: "typoscript", aliases: ["tsconfig"] },
+  { id: "unrealscript", aliases: ["uscript", "uc"] },
+  { id: "uorazor" },
+  { id: "uri", aliases: ["url"] },
+  { id: "v" },
+  { id: "vala" },
+  { id: "vbnet" },
+  { id: "velocity" },
+  { id: "verilog" },
+  { id: "vhdl" },
+  { id: "vim" },
+  { id: "visual-basic", aliases: ["vb", "vba"] },
+  { id: "warpscript" },
+  { id: "wasm" },
+  { id: "web-idl", aliases: ["webidl"] },
+  { id: "wgsl" },
+  { id: "wiki" },
+  { id: "wolfram", aliases: ["mathematica", "nb", "wl"] },
+  { id: "wren" },
+  { id: "xeora", aliases: ["xeoracube"] },
+  { id: "xml-doc" },
+  { id: "xojo" },
+  { id: "xquery" },
+  { id: "yaml", aliases: ["yml"] },
+  { id: "yang" },
+  { id: "zig" }
+];
 
-const NIX_LANGUAGE: LanguageConfig = {
-  id: "nix",
-  aliases: ["nixos"],
-  tokens: [
-    {
-      name: "comment",
-      pattern: "#.*|/\\*[\\s\\S]*?\\*/",
-      greedy: true
-    },
-    {
-      name: "string",
-      pattern: "''[\\s\\S]*?''|\"(?:\\\\.|[^\"\\\\])*\"",
-      greedy: true
-    },
-    {
-      name: "keyword",
-      pattern: "\\b(?:assert|else|if|in|inherit|let|or|rec|then|with)\\b"
-    },
-    {
-      name: "builtin",
-      pattern: "\\b(?:abort|baseNameOf|builtins|derivation|dirOf|fetchTarball|import|isNull|map|placeholder|removeAttrs|throw|toString)\\b"
-    },
-    {
-      name: "number",
-      pattern: "\\b\\d+(?:\\.\\d+)?\\b"
-    },
-    {
-      name: "property",
-      pattern: "\\b[A-Za-z_][A-Za-z0-9_'-]*(?=\\s*=)"
-    },
-    {
-      name: "operator",
-      pattern: "[-+*/!<>=&|?:@]+|\\.\\.\\.?|[{}()[\\],;]"
-    }
-  ]
-};
+const REGEX_LANGUAGES = [
+  WasmRegex,
+  ZigRegex,
+  NixRegex,
+  HclRegex,
+  KustoRegex,
+  GlslRegex,
+  AutohotkeyRegex,
+  GdscriptRegex,
+  MlirRegex,
+  LeanRegex,
+  AngularRegex,
+  VueRegex,
+  LiquidRegex,
+  LessRegex,
+  SassRegex,
+  SvelteRegex,
+] as LanguageConfig[];
 
-const HCL_LANGUAGE: LanguageConfig = {
-  id: "hcl",
-  aliases: ["terraform", "tf", "tfvars"],
-  tokens: [
-    {
-      name: "comment",
-      pattern: "#.*|//.*|/\\*[\\s\\S]*?\\*/",
-      greedy: true
-    },
-    {
-      name: "string",
-      pattern: "<<-?\\w+[\\s\\S]*?\\n\\w+|\"(?:\\\\.|[^\"\\\\])*\"",
-      greedy: true
-    },
-    {
-      name: "keyword",
-      pattern: "\\b(?:resource|data|provider|variable|output|module|locals|terraform|dynamic|for|in|if|null|true|false)\\b"
-    },
-    {
-      name: "builtin",
-      pattern: "\\b(?:count|each|for_each|depends_on|lifecycle|provisioner|connection|source|version|required_providers|required_version|backend)\\b"
-    },
-    {
-      name: "number",
-      pattern: "\\b\\d+(?:\\.\\d+)?\\b"
-    },
-    {
-      name: "property",
-      pattern: "\\b[A-Za-z_][A-Za-z0-9_-]*(?=\\s*=)"
-    },
-    {
-      name: "variable",
-      pattern: "\\b(?:var|local|module|data|path|terraform|each|self)\\.[A-Za-z0-9_.-]+"
-    },
-    {
-      name: "operator",
-      pattern: "=>|==|!=|<=|>=|&&|\\|\\||[-+*/%<>=!?:]+|[{}()[\\],.]"
-    }
-  ]
-};
+const GENERIC_REGEX_TOKENS = GenericRegex.tokens;
 
-const KUSTO_LANGUAGE: LanguageConfig = {
-  id: "kusto",
-  aliases: ["kql"],
-  tokens: [
-    {
-      name: "comment",
-      pattern: "//.*",
-      flags: "m"
-    },
-    {
-      name: "string",
-      pattern: "@?\"(?:\"\"|\\\\.|[^\"\\\\])*\"|'(?:''|\\\\.|[^'\\\\])*'",
-      greedy: true
-    },
-    {
-      name: "keyword",
-      pattern: "\\b(?:let|where|project|project-away|extend|summarize|by|join|kind|on|union|take|limit|top|order|sort|asc|desc|render|evaluate|parse|mv-expand|distinct|count|datatable|between|contains|has|in|and|or|not)\\b",
-      flags: "i"
-    },
-    {
-      name: "builtin",
-      pattern: "\\b(?:ago|bin|case|datetime|dynamic|iff|isnotempty|isnull|isempty|now|strcat|split|tolower|toupper|tostring|toint|tolong|todouble|summarize|countif|dcount|make_set|make_list)\\b",
-      flags: "i"
-    },
-    {
-      name: "number",
-      pattern: "\\b\\d+(?:\\.\\d+)?\\b"
-    },
-    {
-      name: "operator",
-      pattern: "\\|\\||[|=<>!~+-/*%,.;()[\\]{}]"
-    }
-  ]
-};
+const CODEMIRROR_LANGUAGES: LanguageConfig[] = [
+  { id: "angular", aliases: ["ng"], parserLanguage: angularLanguage, preferPrism: true },
+  { id: "css", parserLanguage: cssLanguage, preferPrism: true },
+  { id: "cpp", aliases: ["c++","cxx","cc","hpp","h++"], parserLanguage: cppLanguage, preferPrism: true },
+  { id: "go", parserLanguage: goLanguage, preferPrism: true },
+  { id: "html", aliases: ["htm"], parserLanguage: htmlLanguage, preferPrism: true },
+  { id: "java", parserLanguage: javaLanguage, preferPrism: true },
+  { id: "javascript", aliases: ["js","mjs","cjs"], parserLanguage: javascriptLanguage, preferPrism: true },
+  { id: "typescript", aliases: ["ts"], parserLanguage: typescriptLanguage, preferPrism: true },
+  { id: "jsx", parserLanguage: jsxLanguage, preferPrism: true },
+  { id: "tsx", parserLanguage: tsxLanguage, preferPrism: true },
+  { id: "jinja", aliases: ["jinja2","django"], parserLanguage: jinjaLanguage, preferPrism: true },
+  { id: "json", aliases: ["webmanifest"], parserLanguage: jsonLanguage, preferPrism: true },
+  { id: "less", parserLanguage: lessLanguage, preferPrism: true },
+  { id: "liquid", aliases: ["shopify"], parserLanguage: liquidLanguage, preferPrism: true },
+  { id: "markdown", aliases: ["md"], parserLanguage: markdownLanguage, preferPrism: true },
+  { id: "php", parserLanguage: phpLanguage, preferPrism: true },
+  { id: "python", aliases: ["py"], parserLanguage: pythonLanguage, preferPrism: true },
+  { id: "rust", aliases: ["rs"], parserLanguage: rustLanguage, preferPrism: true },
+  { id: "sass", aliases: ["scss"], parserLanguage: sassLanguage, preferPrism: true },
+  { id: "sql", parserLanguage: sql().language, preferPrism: true },
+  { id: "vue", parserLanguage: vueLanguage, preferPrism: true },
+  { id: "wasm", aliases: ["wat","wast","webassembly"], parserLanguage: wastLanguage, preferPrism: true },
+  { id: "xml", aliases: ["xsd"], parserLanguage: xmlLanguage, preferPrism: true },
+  { id: "yaml", aliases: ["yml"], parserLanguage: yamlLanguage, preferPrism: true },
+  { id: "svelte", aliases: ["sv"], parserLanguage: svelteLanguage, preferPrism: true },
+];
 
-const AUTOHOTKEY_LANGUAGE: LanguageConfig = {
-  id: "autohotkey",
-  aliases: ["ahk"],
-  tokens: [
-    {
-      name: "comment",
-      pattern: ";.*|/\\*[\\s\\S]*?\\*/",
-      greedy: true
-    },
-    {
-      name: "string",
-      pattern: "\"(?:\"\"|`.|[^\"])*\"|'(?:''|`.|[^'])*'",
-      greedy: true
-    },
-    {
-      name: "keyword",
-      pattern: "\\b(?:if|else|return|global|local|static|class|extends|try|catch|finally|throw|loop|while|for|in|break|continue|switch|case|default|goto|gosub|new|and|or|not)\\b",
-      flags: "i"
-    },
-    {
-      name: "builtin",
-      pattern: "\\b(?:MsgBox|Send|SendInput|Click|Sleep|Run|WinWait|WinActivate|Hotkey|SetTimer|InputBox|FileRead|FileAppend|RegRead|RegWrite|StrSplit|SubStr|InStr|Format)\\b",
-      flags: "i"
-    },
-    {
-      name: "number",
-      pattern: "\\b(?:0x[\\da-fA-F]+|\\d+(?:\\.\\d+)?)\\b"
-    },
-    {
-      name: "variable",
-      pattern: "%[A-Za-z_][A-Za-z0-9_]*%|\\b[A-Za-z_][A-Za-z0-9_]*(?=\\s*:=)"
-    },
-    {
-      name: "operator",
-      pattern: "::|:=|=>|==|!=|<=|>=|&&|\\|\\||[-+*/%=!<>.&|^~?:]+|[{}()[\\],.]"
-    }
-  ]
-};
+const REGEX_LANGUAGE_BY_ID = new Map<string, LanguageConfig>();
+for (const language of REGEX_LANGUAGES) {
+  for (const id of getLanguageIds(language)) {
+    REGEX_LANGUAGE_BY_ID.set(id.toLowerCase(), language);
+  }
+}
 
-const GDSCRIPT_LANGUAGE: LanguageConfig = {
-  id: "gdscript",
-  aliases: ["gd"],
-  tokens: [
-    {
-      name: "comment",
-      pattern: "#.*",
-      flags: "m"
-    },
-    {
-      name: "string",
-      pattern: "\"\"\"[\\s\\S]*?\"\"\"|'''[\\s\\S]*?'''|\"(?:\\\\.|[^\"\\\\])*\"|'(?:\\\\.|[^'\\\\])*'",
-      greedy: true
-    },
-    {
-      name: "keyword",
-      pattern: "\\b(?:and|as|assert|await|break|breakpoint|class|class_name|const|continue|elif|else|enum|extends|for|func|if|in|is|match|not|or|pass|preload|return|self|signal|static|super|tool|var|while|yield)\\b"
-    },
-    {
-      name: "builtin",
-      pattern: "\\b(?:Array|Basis|Callable|Color|Dictionary|Node|Node2D|Object|PackedScene|Quaternion|Rect2|Resource|SceneTree|Signal|String|StringName|Transform2D|Transform3D|Vector2|Vector3|Vector4|bool|float|int|void)\\b|@[A-Za-z_][A-Za-z0-9_]*"
-    },
-    {
-      name: "number",
-      pattern: "\\b(?:0x[\\da-fA-F_]+|0b[01_]+|\\d[\\d_]*(?:\\.\\d[\\d_]*)?)\\b"
-    },
-    {
-      name: "function",
-      pattern: "\\b[A-Za-z_][A-Za-z0-9_]*(?=\\s*\\()"
-    },
-    {
-      name: "operator",
-      pattern: ":=|==|!=|<=|>=|&&|\\|\\||[-+*/%=!<>.&|^~?:]+|[{}()[\\],.]"
-    }
-  ]
-};
+const CODEMIRROR_BUILT_IN_LANGUAGES = CODEMIRROR_LANGUAGES.map(withRegexFallback);
+const CODEMIRROR_LANGUAGE_IDS = new Set(CODEMIRROR_BUILT_IN_LANGUAGES.flatMap(getLanguageIds).map((id) => id.toLowerCase()));
 
-const MLIR_LANGUAGE: LanguageConfig = {
-  id: "mlir",
-  tokens: [
-    {
-      name: "comment",
-      pattern: "//.*",
-      flags: "m"
-    },
-    {
-      name: "string",
-      pattern: "\"(?:\\\\.|[^\"\\\\])*\"",
-      greedy: true
-    },
-    {
-      name: "keyword",
-      pattern: "\\b(?:affine_map|affine_set|attributes|dense|false|func|loc|module|none|return|strided|true|type|unit)\\b"
-    },
-    {
-      name: "builtin",
-      pattern: "\\b(?:bf16|f16|f32|f64|i1|i8|i16|i32|i64|index|memref|tensor|vector)\\b(?:<[^>]+>)?"
-    },
-    {
-      name: "number",
-      pattern: "[-+]?\\b(?:0x[\\da-fA-F]+|\\d+(?:\\.\\d+)?)\\b"
-    },
-    {
-      name: "variable",
-      pattern: "%[A-Za-z0-9_.$-]+|#[A-Za-z0-9_.$-]+|@[A-Za-z0-9_.$-]+|![A-Za-z0-9_.$-]+"
-    },
-    {
-      name: "operator",
-      pattern: "->|=>|[{}()[\\],:=<>*x?]|\\.\\.\\."
-    }
-  ]
-};
-
-const LEAN_LANGUAGE: LanguageConfig = {
-  id: "lean",
-  aliases: ["lean4"],
-  tokens: [
-    {
-      name: "comment",
-      pattern: "--.*|/-[\\s\\S]*?-/",
-      greedy: true
-    },
-    {
-      name: "string",
-      pattern: "\"(?:\\\\.|[^\"\\\\])*\"",
-      greedy: true
-    },
-    {
-      name: "keyword",
-      pattern: "\\b(?:abbrev|axiom|by|calc|case|class|def|deriving|do|else|end|example|extends|forall|fun|if|import|in|inductive|infix|instance|let|macro|match|mutual|namespace|open|opaque|partial|private|protected|public|rec|section|simp|structure|syntax|termination_by|then|theorem|universe|variable|where|with)\\b"
-    },
-    {
-      name: "builtin",
-      pattern: "\\b(?:Bool|Char|False|Fin|Float|IO|Int|List|Nat|Option|Prop|Set|Sort|String|Subtype|True|Type|UInt8|UInt16|UInt32|UInt64|Unit)\\b"
-    },
-    {
-      name: "number",
-      pattern: "\\b\\d+(?:\\.\\d+)?\\b"
-    },
-    {
-      name: "function",
-      pattern: "\\b[A-Za-z_][A-Za-z0-9_'.]*(?=\\s*(?:\\{|\\(|:|:=))"
-    },
-    {
-      name: "operator",
-      pattern: "=>|:=|->|<-|←|→|↔|∀|∃|λ|fun|[{}()[\\],.:;=<>+\\-*/|&!?'^]+"
-    }
-  ]
-};
-
-const ANGULAR_LANGUAGE: LanguageConfig = {
-  id: "angular",
-  aliases: ["ng"],
-  parserLanguage: angularLanguage,
-  preferPrism: true,
-  tokens: [
-    {
-      name: "comment",
-      pattern: "<!--[\\s\\S]*?-->|/\\*[\\s\\S]*?\\*/|//.*",
-      greedy: true
-    },
-    {
-      name: "string",
-      pattern: "\"(?:\\\\.|[^\"\\\\])*\"|'(?:\\\\.|[^'\\\\])*'|`(?:\\\\.|[^`\\\\])*`",
-      greedy: true
-    },
-    {
-      name: "keyword",
-      pattern: "\\b(?:as|async|else|false|for|if|let|null|of|then|track|true|undefined)\\b|@[A-Za-z][A-Za-z0-9_-]*|\\*(?:ngFor|ngIf|ngSwitchCase|ngSwitchDefault)"
-    },
-    {
-      name: "builtin",
-      pattern: "\\b(?:ngClass|ngFor|ngIf|ngModel|ngStyle|ngSwitch|ngTemplateOutlet)\\b"
-    },
-    {
-      name: "function",
-      pattern: "\\b[A-Za-z_$][A-Za-z0-9_$]*(?=\\s*\\()"
-    },
-    {
-      name: "property",
-      pattern: "\\[\\(?[A-Za-z0-9_.:-]+\\)?\\]|\\([A-Za-z0-9_.:-]+\\)|#[A-Za-z_][A-Za-z0-9_-]*|\\b[A-Za-z_:][-A-Za-z0-9_:]*(?=\\s*=)|</?\\s*[A-Za-z][A-Za-z0-9:.-]*"
-    },
-    {
-      name: "operator",
-      pattern: "\\{\\{|\\}\\}|=>|===|!==|==|!=|<=|>=|&&|\\|\\||\\?\\.|[-+*/%=!<>.&|^~?:]+|[{}()[\\],.;]"
-    }
-  ]
-};
-
-const VUE_LANGUAGE: LanguageConfig = {
-  id: "vue",
-  parserLanguage: vueLanguage,
-  preferPrism: true,
-  tokens: [
-    {
-      name: "comment",
-      pattern: "<!--[\\s\\S]*?-->|/\\*[\\s\\S]*?\\*/|//.*",
-      greedy: true
-    },
-    {
-      name: "string",
-      pattern: "\"(?:\\\\.|[^\"\\\\])*\"|'(?:\\\\.|[^'\\\\])*'|`(?:\\\\.|[^`\\\\])*`",
-      greedy: true
-    },
-    {
-      name: "keyword",
-      pattern: "\\b(?:as|await|break|case|catch|class|const|continue|default|else|export|extends|finally|for|from|function|get|if|import|in|let|new|return|set|switch|throw|try|typeof|var|while|yield)\\b"
-    },
-    {
-      name: "builtin",
-      pattern: "\\b(?:computed|defineEmits|defineExpose|defineProps|false|null|onMounted|reactive|ref|true|undefined|watch)\\b"
-    },
-    {
-      name: "number",
-      pattern: "\\b(?:0x[\\da-fA-F_]+|0b[01_]+|\\d[\\d_]*(?:\\.\\d[\\d_]*)?(?:[eE][-+]?\\d[\\d_]*)?)\\b"
-    },
-    {
-      name: "function",
-      pattern: "\\b[A-Za-z_$][A-Za-z0-9_$]*(?=\\s*\\()"
-    },
-    {
-      name: "property",
-      pattern: "\\b(?:v-[A-Za-z0-9:-]+|@[A-Za-z0-9:-]+|:[A-Za-z0-9:-]+|#[A-Za-z0-9:-]+)\\b|\\b[A-Za-z_:][-A-Za-z0-9_:]*(?=\\s*=)|</?\\s*[A-Za-z][A-Za-z0-9:.-]*"
-    },
-    {
-      name: "operator",
-      pattern: "\\{\\{|\\}\\}|=>|===|!==|==|!=|<=|>=|&&|\\|\\||\\?\\.|[-+*/%=!<>.&|^~?:]+|[{}()[\\],.;]"
-    }
-  ]
-};
-
-const LIQUID_LANGUAGE: LanguageConfig = {
-  id: "liquid",
-  aliases: ["shopify"],
-  parserLanguage: liquidLanguage,
-  preferPrism: true,
-  tokens: [
-    {
-      name: "comment",
-      pattern: "\\{%\\s*comment\\s*%\\}[\\s\\S]*?\\{%\\s*endcomment\\s*%\\}",
-      greedy: true
-    },
-    {
-      name: "string",
-      pattern: "\"(?:\\\\.|[^\"\\\\])*\"|'(?:\\\\.|[^'\\\\])*'",
-      greedy: true
-    },
-    {
-      name: "keyword",
-      pattern: "\\{%-?\\s*(?:assign|break|capture|case|comment|continue|cycle|decrement|else|elsif|endcase|endcapture|endcomment|endfor|endif|for|if|include|increment|layout|liquid|paginate|raw|render|tablerow|unless|when)\\b|\\b(?:and|contains|in|or|reversed)\\b"
-    },
-    {
-      name: "builtin",
-      pattern: "\\|\\s*[A-Za-z_][A-Za-z0-9_]*"
-    },
-    {
-      name: "number",
-      pattern: "\\b\\d+(?:\\.\\d+)?\\b"
-    },
-    {
-      name: "variable",
-      pattern: "\\{\\{[\\s\\S]*?\\}\\}|\\b[A-Za-z_][A-Za-z0-9_.-]*\\b"
-    },
-    {
-      name: "operator",
-      pattern: "\\{%-?|-%\\}|\\{\\{|\\}\\}|==|!=|<=|>=|[=<>|.,:()[\\]-]"
-    }
-  ]
-};
-
-const LESS_LANGUAGE: LanguageConfig = {
-  id: "less",
-  parserLanguage: lessLanguage,
-  preferPrism: true,
-  tokens: [
-    {
-      name: "comment",
-      pattern: "/\\*[\\s\\S]*?\\*/|//.*",
-      greedy: true
-    },
-    {
-      name: "string",
-      pattern: "\"(?:\\\\.|[^\"\\\\])*\"|'(?:\\\\.|[^'\\\\])*'",
-      greedy: true
-    },
-    {
-      name: "keyword",
-      pattern: "@(?:arguments|import|media|supports)\\b|\\b(?:and|from|not|only|to|when)\\b"
-    },
-    {
-      name: "builtin",
-      pattern: "\\b(?:calc|clamp|darken|fade|hsl|hsla|lighten|linear-gradient|mix|rgb|rgba|var)\\b"
-    },
-    {
-      name: "number",
-      pattern: "[-+]?\\b\\d+(?:\\.\\d+)?(?:%|[a-z]+)?\\b"
-    },
-    {
-      name: "variable",
-      pattern: "@[A-Za-z_][A-Za-z0-9_-]*"
-    },
-    {
-      name: "property",
-      pattern: "\\b-?[A-Za-z_][A-Za-z0-9_-]*(?=\\s*:)|[.#][A-Za-z_][A-Za-z0-9_-]*"
-    },
-    {
-      name: "operator",
-      pattern: "[-+*/%=!<>~|]+|[{}()[\\],;:]"
-    }
-  ]
-};
-
-const SASS_LANGUAGE: LanguageConfig = {
-  id: "sass",
-  aliases: ["scss"],
-  parserLanguage: sassLanguage,
-  preferPrism: true,
-  tokens: [
-    {
-      name: "comment",
-      pattern: "/\\*[\\s\\S]*?\\*/|//.*",
-      greedy: true
-    },
-    {
-      name: "string",
-      pattern: "\"(?:\\\\.|[^\"\\\\])*\"|'(?:\\\\.|[^'\\\\])*'",
-      greedy: true
-    },
-    {
-      name: "keyword",
-      pattern: "@(?:content|debug|each|else|error|extend|for|forward|function|if|import|include|media|mixin|return|use|warn|while)\\b|\\b(?:and|from|not|or|through|to)\\b"
-    },
-    {
-      name: "builtin",
-      pattern: "\\b(?:calc|clamp|darken|hsl|hsla|lighten|linear-gradient|map-get|mix|rgb|rgba|var)\\b"
-    },
-    {
-      name: "number",
-      pattern: "[-+]?\\b\\d+(?:\\.\\d+)?(?:%|[a-z]+)?\\b"
-    },
-    {
-      name: "variable",
-      pattern: "\\$[A-Za-z_][A-Za-z0-9_-]*"
-    },
-    {
-      name: "property",
-      pattern: "\\b-?[A-Za-z_][A-Za-z0-9_-]*(?=\\s*:)|[.#][A-Za-z_][A-Za-z0-9_-]*"
-    },
-    {
-      name: "operator",
-      pattern: "[-+*/%=!<>~|]+|[{}()[\\],;:]"
-    }
-  ]
-};
-
-const SVELTE_LANGUAGE: LanguageConfig = {
-  id: "svelte",
-  aliases: ["sv"],
-  parserLanguage: svelteLanguage,
-  preferPrism: true,
-  tokens: [
-    {
-      name: "comment",
-      pattern: "<!--[\\s\\S]*?-->|/\\*[\\s\\S]*?\\*/|//.*",
-      greedy: true
-    },
-    {
-      name: "string",
-      pattern: "\"(?:\\\\.|[^\"\\\\])*\"|'(?:\\\\.|[^'\\\\])*'|`(?:\\\\.|[^`\\\\])*`",
-      greedy: true
-    },
-    {
-      name: "keyword",
-      pattern: "\\{[#/:@](?:if|else|each|await|then|catch|key|html|debug|const|render|snippet)\\b|\\b(?:as|await|break|case|catch|class|const|continue|default|else|export|extends|finally|for|from|function|get|if|import|in|let|new|return|set|switch|throw|try|typeof|var|while|yield)\\b"
-    },
-    {
-      name: "builtin",
-      pattern: "\\b(?:Array|Boolean|Date|Error|JSON|Map|Math|Number|Object|Promise|Set|String|console|document|false|null|onMount|true|undefined|window)\\b|\\$[A-Za-z_][A-Za-z0-9_$]*"
-    },
-    {
-      name: "number",
-      pattern: "\\b(?:0x[\\da-fA-F_]+|0b[01_]+|\\d[\\d_]*(?:\\.\\d[\\d_]*)?(?:[eE][-+]?\\d[\\d_]*)?)\\b"
-    },
-    {
-      name: "function",
-      pattern: "\\b[A-Za-z_$][A-Za-z0-9_$]*(?=\\s*\\()"
-    },
-    {
-      name: "property",
-      pattern: "\\b[A-Za-z_:][-A-Za-z0-9_:]*(?=\\s*=)|</?\\s*[A-Za-z][A-Za-z0-9:.-]*"
-    },
-    {
-      name: "operator",
-      pattern: "=>|===|!==|==|!=|<=|>=|&&|\\|\\||\\?\\.|[-+*/%=!<>.&|^~?:]+|[{}()[\\],.;]"
-    }
-  ]
-};
+const PRISM_BUILT_IN_LANGUAGES: LanguageConfig[] = PRISM_SUPPORTED_LANGUAGES.flatMap((language) => {
+  const ids = getLanguageIds(language).filter((id) => !CODEMIRROR_LANGUAGE_IDS.has(id.toLowerCase()));
+  if (ids.length === 0) {
+    return [];
+  }
+  const [id, ...aliases] = ids;
+  const regexLanguage = findRegexLanguage({ id, aliases });
+  return [{
+    ...(regexLanguage ?? {}),
+    id,
+    aliases: mergeAliases(regexLanguage?.aliases, aliases),
+    tokens: regexLanguage?.tokens ?? GENERIC_REGEX_TOKENS,
+    preferPrism: true
+  }];
+});
 
 export const BUILT_IN_LANGUAGES: LanguageConfig[] = [
-  WASM_LANGUAGE,
-  ZIG_LANGUAGE,
-  NIX_LANGUAGE,
-  HCL_LANGUAGE,
-  KUSTO_LANGUAGE,
-  AUTOHOTKEY_LANGUAGE,
-  GDSCRIPT_LANGUAGE,
-  MLIR_LANGUAGE,
-  LEAN_LANGUAGE,
-  ANGULAR_LANGUAGE,
-  VUE_LANGUAGE,
-  LIQUID_LANGUAGE,
-  LESS_LANGUAGE,
-  SASS_LANGUAGE,
-  SVELTE_LANGUAGE
+  ...CODEMIRROR_BUILT_IN_LANGUAGES,
+  ...PRISM_BUILT_IN_LANGUAGES
 ];
+
+function withRegexFallback(language: LanguageConfig): LanguageConfig {
+  const regexLanguage = findRegexLanguage(language);
+  if (!regexLanguage) {
+    return language;
+  }
+  return {
+    ...regexLanguage,
+    ...language,
+    aliases: mergeAliases(regexLanguage.aliases, language.aliases),
+    tokens: regexLanguage.tokens
+  };
+}
+
+function findRegexLanguage(language: LanguageConfig): LanguageConfig | undefined {
+  for (const id of getLanguageIds(language)) {
+    const regexLanguage = REGEX_LANGUAGE_BY_ID.get(id.toLowerCase());
+    if (regexLanguage) {
+      return regexLanguage;
+    }
+  }
+  return undefined;
+}
+
+function getLanguageIds(language: PrismSupportedLanguage | LanguageConfig): string[] {
+  return [language.id, ...(language.aliases ?? [])];
+}
+
+function mergeAliases(left: string[] | undefined, right: string[] | undefined): string[] | undefined {
+  const aliases = [...(left ?? []), ...(right ?? [])];
+  const uniqueAliases = Array.from(new Set(aliases));
+  return uniqueAliases.length > 0 ? uniqueAliases : undefined;
+}

@@ -1,0 +1,39 @@
+{
+  "id": "vue",
+  "tokens": [
+    {
+      "name": "comment",
+      "pattern": "<!--[\\s\\S]*?-->|/\\*[\\s\\S]*?\\*/|//.*",
+      "greedy": true
+    },
+    {
+      "name": "string",
+      "pattern": "\"(?:\\\\.|[^\"\\\\])*\"|'(?:\\\\.|[^'\\\\])*'|`(?:\\\\.|[^`\\\\])*`",
+      "greedy": true
+    },
+    {
+      "name": "keyword",
+      "pattern": "\\b(?:as|await|break|case|catch|class|const|continue|default|else|export|extends|finally|for|from|function|get|if|import|in|let|new|return|set|switch|throw|try|typeof|var|while|yield)\\b"
+    },
+    {
+      "name": "builtin",
+      "pattern": "\\b(?:computed|defineEmits|defineExpose|defineProps|false|null|onMounted|reactive|ref|true|undefined|watch)\\b"
+    },
+    {
+      "name": "number",
+      "pattern": "\\b(?:0x[\\da-fA-F_]+|0b[01_]+|\\d[\\d_]*(?:\\.\\d[\\d_]*)?(?:[eE][-+]?\\d[\\d_]*)?)\\b"
+    },
+    {
+      "name": "function",
+      "pattern": "\\b[A-Za-z_$][A-Za-z0-9_$]*(?=\\s*\\()"
+    },
+    {
+      "name": "property",
+      "pattern": "\\b(?:v-[A-Za-z0-9:-]+|@[A-Za-z0-9:-]+|:[A-Za-z0-9:-]+|#[A-Za-z0-9:-]+)\\b|\\b[A-Za-z_:][-A-Za-z0-9_:]*(?=\\s*=)|</?\\s*[A-Za-z][A-Za-z0-9:.-]*"
+    },
+    {
+      "name": "operator",
+      "pattern": "\\{\\{|\\}\\}|=>|===|!==|==|!=|<=|>=|&&|\\|\\||\\?\\.|[-+*/%=!<>.&|^~?:]+|[{}()[\\],.;]"
+    }
+  ]
+}

@@ -1,0 +1,38 @@
+{
+  "id": "liquid",
+  "aliases": [
+    "shopify"
+  ],
+  "tokens": [
+    {
+      "name": "comment",
+      "pattern": "\\{%\\s*comment\\s*%\\}[\\s\\S]*?\\{%\\s*endcomment\\s*%\\}",
+      "greedy": true
+    },
+    {
+      "name": "string",
+      "pattern": "\"(?:\\\\.|[^\"\\\\])*\"|'(?:\\\\.|[^'\\\\])*'",
+      "greedy": true
+    },
+    {
+      "name": "keyword",
+      "pattern": "\\{%-?\\s*(?:assign|break|capture|case|comment|continue|cycle|decrement|else|elsif|endcase|endcapture|endcomment|endfor|endif|for|if|include|increment|layout|liquid|paginate|raw|render|tablerow|unless|when)\\b|\\b(?:and|contains|in|or|reversed)\\b"
+    },
+    {
+      "name": "builtin",
+      "pattern": "\\|\\s*[A-Za-z_][A-Za-z0-9_]*"
+    },
+    {
+      "name": "number",
+      "pattern": "\\b\\d+(?:\\.\\d+)?\\b"
+    },
+    {
+      "name": "variable",
+      "pattern": "\\{\\{[\\s\\S]*?\\}\\}|\\b[A-Za-z_][A-Za-z0-9_.-]*\\b"
+    },
+    {
+      "name": "operator",
+      "pattern": "\\{%-?|-%\\}|\\{\\{|\\}\\}|==|!=|<=|>=|[=<>|.,:()[\\]-]"
+    }
+  ]
+}
