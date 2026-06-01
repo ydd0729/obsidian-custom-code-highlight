@@ -4,12 +4,26 @@ const OBSIDIAN_EDITOR_TOKEN_CLASSES: Record<string, string> = {
   comment: "cm-comment",
   string: "cm-string",
   keyword: "cm-keyword",
-  builtin: "cm-atom",
+  builtin: "cm-builtin",
+  constant: "cm-atom",
+  boolean: "cm-atom",
   number: "cm-number",
-  variable: "cm-variable-2",
-  function: "cm-def",
+  unit: "cm-builtin",
+  variable: "cm-variable",
+  parameter: "cm-variable-2",
+  namespace: "cm-variable-2",
+  function: "cm-variable",
+  type: "cm-type",
+  "class-name": "cm-type",
   property: "cm-property",
-  operator: "cm-operator"
+  selector: "cm-qualifier",
+  tag: "cm-tag",
+  attribute: "cm-attribute",
+  "attr-name": "cm-attribute",
+  atrule: "cm-keyword",
+  directive: "cm-meta",
+  operator: "cm-operator",
+  punctuation: "cm-punctuation"
 };
 
 export function createTokenMatchers(language: LanguageConfig): TokenMatcher[] {

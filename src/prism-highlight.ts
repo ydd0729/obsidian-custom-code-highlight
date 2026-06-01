@@ -4,40 +4,49 @@ import { renderTokenRanges } from "./token-ranges";
 import type { LanguageConfig, PrismGrammar, RuntimeLanguage, TokenRange } from "./types";
 
 const PRISM_TO_EDITOR_TOKEN_NAMES: Record<string, string> = {
+  annotation: "keyword",
+  atrule: "atrule",
   attrName: "property",
-  "attr-name": "property",
+  "attr-name": "attribute",
   "attr-value": "string",
-  boolean: "keyword",
+  boolean: "boolean",
+  bold: "keyword",
   builtin: "builtin",
   cdata: "comment",
   char: "string",
-  "class-name": "variable",
+  "class-name": "type",
   comment: "comment",
-  constant: "builtin",
+  constant: "constant",
+  deleted: "comment",
+  directive: "directive",
   doctype: "comment",
+  entity: "builtin",
   function: "function",
+  "function-variable": "function",
+  hashbang: "comment",
+  important: "keyword",
+  inserted: "string",
+  interpolation: "string",
+  "interpolation-punctuation": "operator",
+  italic: "keyword",
   keyword: "keyword",
-  namespace: "property",
+  namespace: "namespace",
   number: "number",
   operator: "operator",
-  parameter: "variable",
+  parameter: "parameter",
   prolog: "comment",
   property: "property",
-  punctuation: "operator",
+  punctuation: "punctuation",
   regex: "string",
-  selector: "property",
+  rule: "atrule",
+  selector: "selector",
+  shebang: "comment",
   string: "string",
-  symbol: "builtin",
-  tag: "property",
+  symbol: "constant",
+  tag: "tag",
+  unit: "number",
+  url: "string",
   variable: "variable"
-};
-
-type PrismTokenStream = Array<string | PrismTokenLike>;
-type PrismTokenContent = string | PrismTokenLike | PrismTokenStream;
-
-type PrismTokenLike = {
-  type: string;
-  content: PrismTokenContent;
 };
 
 export function createPrismGrammar(language: LanguageConfig): PrismGrammar {
@@ -121,33 +130,55 @@ export function findPrismTokenRanges(text: string, language: RuntimeLanguage): T
   }
 
   const grammar = bundledPrism.languages[prismLanguageId];
-  const stream = bundledPrism.tokenize(text, grammar) as PrismTokenStream;
+  const html = bundledPrism.highlight(text, grammar, prismLanguageId);
+  return findPrismTokenRangesFromHighlightedHtml(html);
+}
+
+function findPrismTokenRangesFromHighlightedHtml(html: string): TokenRange[] {
+  const template = document.createElement("template");
+  template.innerHTML = html;
+
   const ranges: TokenRange[] = [];
-  collectPrismTokenRanges(stream, 0, ranges);
+  let offset = 0;
+
+  const visit = (node: Node): void => {
+    if (node.nodeType === Node.TEXT_NODE) {
+      offset += node.textContent?.length ?? 0;
+      return;
+    }
+
+    if (!(node instanceof Element)) {
+      node.childNodes.forEach(visit);
+      return;
+    }
+
+    const editorTokenName = node.classList.contains("token")
+      ? getEditorTokenNameFromPrismClasses(node.classList)
+      : null;
+    const start = offset;
+
+    node.childNodes.forEach(visit);
+
+    if (editorTokenName && offset > start) {
+      ranges.push({ start, end: offset, name: editorTokenName });
+    }
+  };
+
+  template.content.childNodes.forEach(visit);
   return ranges.sort((left, right) => left.start - right.start || right.end - left.end);
 }
 
-function collectPrismTokenRanges(content: PrismTokenContent, offset: number, ranges: TokenRange[]): number {
-  if (typeof content === "string") {
-    return offset + content.length;
-  }
-
-  if (Array.isArray(content)) {
-    let currentOffset = offset;
-    for (const item of content) {
-      currentOffset = collectPrismTokenRanges(item, currentOffset, ranges);
+function getEditorTokenNameFromPrismClasses(classList: DOMTokenList): string | null {
+  for (const className of Array.from(classList)) {
+    const editorTokenName = getEditorTokenName(className);
+    if (editorTokenName) {
+      return editorTokenName;
     }
-    return currentOffset;
   }
 
-  const start = offset;
-  const nestedCount = ranges.length;
-  const end = collectPrismTokenRanges(content.content, offset, ranges);
-  const editorTokenName = PRISM_TO_EDITOR_TOKEN_NAMES[content.type];
+  return null;
+}
 
-  if (editorTokenName && ranges.length === nestedCount && end > start) {
-    ranges.push({ start, end, name: editorTokenName });
-  }
-
-  return end;
+function getEditorTokenName(tokenName: string): string | null {
+  return PRISM_TO_EDITOR_TOKEN_NAMES[tokenName] ?? null;
 }

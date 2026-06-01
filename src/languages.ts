@@ -20,6 +20,8 @@ import { wastLanguage } from "@codemirror/lang-wast";
 import { xmlLanguage } from "@codemirror/lang-xml";
 import { yamlLanguage } from "@codemirror/lang-yaml";
 import { svelteLanguage } from "@replit/codemirror-lang-svelte";
+import leanLanguage from "../languages/lean.json";
+import mlirLanguage from "../languages/mlir.json";
 import type { LanguageConfig } from "./types";
 
 type PrismSupportedLanguage = {
@@ -357,6 +359,10 @@ const CODEMIRROR_LANGUAGES: LanguageConfig[] = [
 
 const CODEMIRROR_BUILT_IN_LANGUAGES = CODEMIRROR_LANGUAGES;
 const CODEMIRROR_LANGUAGE_IDS = new Set(CODEMIRROR_BUILT_IN_LANGUAGES.flatMap(getLanguageIds).map((id) => id.toLowerCase()));
+const REGEX_BUILT_IN_LANGUAGES: LanguageConfig[] = [
+  leanLanguage,
+  mlirLanguage
+];
 
 const PRISM_BUILT_IN_LANGUAGES: LanguageConfig[] = PRISM_SUPPORTED_LANGUAGES.flatMap((language) => {
   const ids = getLanguageIds(language).filter((id) => !CODEMIRROR_LANGUAGE_IDS.has(id.toLowerCase()));
@@ -373,7 +379,8 @@ const PRISM_BUILT_IN_LANGUAGES: LanguageConfig[] = PRISM_SUPPORTED_LANGUAGES.fla
 
 export const BUILT_IN_LANGUAGES: LanguageConfig[] = [
   ...CODEMIRROR_BUILT_IN_LANGUAGES,
-  ...PRISM_BUILT_IN_LANGUAGES
+  ...PRISM_BUILT_IN_LANGUAGES,
+  ...REGEX_BUILT_IN_LANGUAGES
 ];
 
 function getLanguageIds(language: PrismSupportedLanguage | LanguageConfig): string[] {

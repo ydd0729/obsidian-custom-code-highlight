@@ -47,19 +47,46 @@ jobs:
           subject-path: |
             main.js
             manifest.json
-            languages.schema.json
-            languages/*.json
+
+      - name: Generate styles artifact attestation
+        if: hashFiles('styles.css') != ''
+        uses: actions/attest@v4
+        with:
+          subject-path: styles.css
+
+      - name: Generate release notes
+        run: |
+          tag="${GITHUB_REF#refs/tags/}"
+          description="$(node -p "require('./manifest.json').description")"
+          cat > release-notes.md <<EOF
+          ${description}
+
+          Changes in ${tag}:
+
+          - Adds broader syntax highlighting for Obsidian code blocks in Reading view, Live Preview, and Source mode.
+          - Bundles supported PrismJS and CodeMirror language highlighting into main.js.
+          - Embeds Lean and MLIR fallback highlighting in main.js so Obsidian can install the plugin using only supported release assets.
+
+          Release assets:
+
+          - main.js
+          - manifest.json
+          EOF
+          if [ -f styles.css ]; then
+            echo "- styles.css" >> release-notes.md
+          fi
 
       - name: Create release
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           tag="${GITHUB_REF#refs/tags/}"
-          assets="main.js manifest.json languages.schema.json"
-          for file in languages/*.json; do
-            assets="$assets $file"
-          done
+          assets="main.js manifest.json"
+          if [ -f styles.css ]; then
+            assets="$assets styles.css"
+          fi
           gh release create "$tag" \
             --title "$tag" \
+            --notes-file release-notes.md \
             --verify-tag \
             $assets

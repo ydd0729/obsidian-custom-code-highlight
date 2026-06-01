@@ -21,7 +21,7 @@ The plugin supports:
 
 - Every PrismJS language bundled from the PrismJS supported language list.
 - Every CodeMirror parser language bundled in this plugin.
-- Regex fallback languages shipped as separate JSON files.
+- Embedded regex fallback languages.
 - User-defined regex languages that use the same JSON format.
 
 You can check the upstream language lists here:
@@ -29,7 +29,7 @@ You can check the upstream language lists here:
 - PrismJS supported languages: [prismjs.com/#supported-languages](https://prismjs.com/#supported-languages)
 - CodeMirror parser packages: [codemirror.net/#language-support](https://codemirror.net/#language-support)
 
-Bundled fallback JSON files currently cover MLIR and Lean. Other bundled languages use PrismJS and/or CodeMirror support.
+Embedded fallback languages currently cover MLIR and Lean. Other bundled languages use PrismJS and/or CodeMirror support.
 
 Highlighting priority depends on the Obsidian view:
 
@@ -119,7 +119,8 @@ Required files:
 ```text
 manifest.json
 main.js
-languages/*.json
 ```
+
+Obsidian's community plugin installer only downloads `main.js`, `manifest.json`, and `styles.css` when present. Built-in language fallbacks are embedded into `main.js`; create custom JSON language files manually only if you need local additions.
 
 Then enable `Extended Code Highlight` in Obsidian's Community plugins settings.

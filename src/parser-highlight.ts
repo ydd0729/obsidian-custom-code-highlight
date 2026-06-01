@@ -6,24 +6,38 @@ const PARSER_HIGHLIGHTER = tagHighlighter([
   { tag: [tags.comment, tags.lineComment, tags.blockComment, tags.docComment], class: "comment" },
   { tag: [tags.string, tags.docString, tags.character, tags.attributeValue, tags.regexp], class: "string" },
   { tag: [tags.keyword, tags.controlKeyword, tags.definitionKeyword, tags.moduleKeyword, tags.operatorKeyword], class: "keyword" },
-  { tag: [tags.atom, tags.bool, tags.null, tags.unit, tags.standard(tags.variableName)], class: "builtin" },
+  { tag: tags.bool, class: "boolean" },
+  { tag: [tags.atom, tags.null], class: "constant" },
+  { tag: tags.unit, class: "unit" },
+  { tag: tags.standard(tags.variableName), class: "builtin" },
   { tag: [tags.number, tags.integer, tags.float], class: "number" },
-  { tag: [tags.variableName, tags.labelName, tags.namespace, tags.macroName], class: "variable" },
   { tag: [tags.function(tags.variableName), tags.function(tags.propertyName)], class: "function" },
-  { tag: [tags.propertyName, tags.attributeName, tags.tagName, tags.className, tags.typeName], class: "property" },
-  { tag: [tags.operator, tags.derefOperator, tags.arithmeticOperator, tags.logicOperator, tags.bitwiseOperator, tags.compareOperator, tags.updateOperator, tags.definitionOperator, tags.typeOperator, tags.controlOperator, tags.punctuation, tags.bracket, tags.angleBracket, tags.squareBracket, tags.paren, tags.brace, tags.separator], class: "operator" }
+  { tag: tags.propertyName, class: "property" },
+  { tag: tags.attributeName, class: "attr-name" },
+  { tag: tags.tagName, class: "tag" },
+  { tag: [tags.className, tags.typeName], class: "class-name" },
+  { tag: [tags.variableName, tags.labelName, tags.namespace, tags.macroName], class: "variable" },
+  { tag: [tags.operator, tags.derefOperator, tags.arithmeticOperator, tags.logicOperator, tags.bitwiseOperator, tags.compareOperator, tags.updateOperator, tags.definitionOperator, tags.typeOperator, tags.controlOperator], class: "operator" },
+  { tag: [tags.punctuation, tags.bracket, tags.angleBracket, tags.squareBracket, tags.paren, tags.brace, tags.separator], class: "punctuation" }
 ]);
 
 const TOKEN_CLASS_NAMES = new Set([
-  "comment",
-  "string",
-  "keyword",
+  "attr-name",
+  "boolean",
   "builtin",
-  "number",
-  "variable",
+  "class-name",
+  "comment",
+  "constant",
   "function",
+  "keyword",
+  "number",
+  "operator",
   "property",
-  "operator"
+  "punctuation",
+  "string",
+  "tag",
+  "unit",
+  "variable"
 ]);
 
 export function findParserTokenRanges(text: string, language: Language): TokenRange[] {
