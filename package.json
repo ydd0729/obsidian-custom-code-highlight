@@ -1,6 +1,6 @@
 {
   "name": "obsidian-extended-code-highlight",
-  "version": "1.1.2",
+  "version": "1.1.3",
   "description": "Additional and configurable syntax highlighting for code blocks.",
   "main": "main.js",
   "scripts": {
